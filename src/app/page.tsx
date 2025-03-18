@@ -1,103 +1,109 @@
-import Image from "next/image";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import type { Post, Tag } from "@prisma/client";
+import { TypeWriter } from "@/components/type-writer";
+import { Github, Twitter, Linkedin, Mail } from "lucide-react";
 
-export default function Home() {
+type PostWithTags = Post & { tags: Tag[] };
+
+export default async function Home() {
+  const posts = await prisma.post.findMany({
+    where: { published: true },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    include: { tags: true },
+  }) as PostWithTags[];
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+    <div className="space-y-12">
+      <section className="space-y-6">
+        <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl min-h-[3rem] sm:min-h-[3.5rem] md:min-h-[4rem]">
+          欢迎来到我的博客
+        </h1>
+        <p className="text-muted-foreground max-w-[600px]">
+        风可以吹跑一片白纸，但是不能吹跑一只蝴蝶，因为生命的力量在于不顺从，我希望你们能勇敢的打破别人给你的枷锁，因为生活中的对和错都是人为决定的。
+        </p>
+        <div className="flex flex-wrap gap-4">
           <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://github.com/qiushui7"
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            aria-label="GitHub"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
+            <Github className="h-5 w-5" />
           </a>
           <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
+            href="https://www.linkedin.com/in/%E6%85%A7%E6%B6%9B-%E5%88%98-181771337/"
             target="_blank"
             rel="noopener noreferrer"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            aria-label="LinkedIn"
           >
-            Read our docs
+            <Linkedin className="h-5 w-5" />
+          </a>
+          <a
+            href="mailto:qiushui030716@gmail.com"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+            aria-label="邮箱"
+          >
+            <Mail className="h-5 w-5" />
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </section>
+
+      <section className="space-y-6">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold tracking-tight">最新文章</h2>
+          <Link href="/posts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            查看全部
+          </Link>
+        </div>
+        
+        {posts.length > 0 ? (
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {posts.map((post: PostWithTags) => (
+              <article key={post.id} className="group space-y-2">
+                <Link href={`/posts/${post.slug}`}>
+                  <h3 className="text-lg font-medium leading-tight group-hover:underline">{post.title}</h3>
+                </Link>
+                {post.excerpt && (
+                  <p className="text-sm text-muted-foreground">{post.excerpt}</p>
+                )}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <time dateTime={post.createdAt.toISOString()}>
+                    {new Date(post.createdAt).toLocaleDateString("zh-CN", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                    })}
+                  </time>
+                  {post.tags.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <div className="flex items-center gap-1">
+                        {post.tags.map((tag: Tag, index: number) => (
+                          <span key={tag.id}>
+                            <Link
+                              href={`/tags/${tag.slug}`}
+                              className="hover:text-foreground transition-colors"
+                            >
+                              {tag.name}
+                            </Link>
+                            {index < post.tags.length - 1 ? ", " : ""}
+                          </span>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <p className="text-muted-foreground">暂无文章发布。</p>
+        )}
+      </section>
     </div>
   );
 }
