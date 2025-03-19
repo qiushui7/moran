@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "关于 - 秋水博客",
-  description: "了解关于秋水博客的更多信息",
+  title: "关于 - 墨韵",
+  description: "了解关于作者的更多信息",
 };
 
 export default function AboutPage() {
@@ -10,12 +10,12 @@ export default function AboutPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">关于</h1>
-        <p className="text-muted-foreground mt-2">关于秋水博客</p>
+        <p className="text-muted-foreground mt-2">关于墨韵</p>
       </div>
 
       <div className="prose dark:prose-invert max-w-none">
         <p>
-          秋水博客是一个基于Next.js构建的个人博客网站，设计风格简约而现代。该博客采用了极简主义的设计理念，注重内容的展示和阅读体验。
+          墨韵是一个基于Next.js构建的个人博客网站，设计风格简约而现代。该博客采用了极简主义的设计理念，注重内容的展示和阅读体验。
         </p>
         
         <h2>技术栈</h2>

@@ -5,7 +5,7 @@ import type { Post, Tag } from "@prisma/client";
 type PostWithTags = Post & { tags: Tag[] };
 
 export const metadata = {
-  title: "文章列表 - 秋水博客",
+  title: "文章列表 - 墨韵",
   description: "浏览所有博客文章",
 };
 

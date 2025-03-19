@@ -11,6 +11,7 @@ import {
   LoaderIcon
 } from "lucide-react";
 import { toast } from "sonner";
+import { APP_CONSTANTS } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -37,6 +38,9 @@ export default function TagsManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [tagToDelete, setTagToDelete] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  // 最大标签数量限制
+  const MAX_TAGS_LIMIT = APP_CONSTANTS.MAX_TAGS_LIMIT;
   
   // 加载标签数据
   useEffect(() => {
@@ -71,6 +75,12 @@ export default function TagsManagement() {
       return;
     }
 
+    // 检查是否达到最大标签数限制
+    if (tags.length >= MAX_TAGS_LIMIT) {
+      setError(`已达到最大标签数限制 (${MAX_TAGS_LIMIT}个)`);
+      return;
+    }
+
     try {
       const res = await fetch('/api/tags', {
         method: 'POST',
@@ -91,6 +101,10 @@ export default function TagsManagement() {
       setTags([...tags, { ...data, count: 0 }]);
       setNewTag({ name: "", slug: "" });
       toast.success('标签创建成功');
+      
+      // 触发刷新标签列表事件
+      const refreshTagsEvent = new CustomEvent('refreshTagsList');
+      window.dispatchEvent(refreshTagsEvent);
     } catch (error) {
       console.error('添加标签失败:', error);
       setError('添加标签失败');
@@ -120,6 +134,10 @@ export default function TagsManagement() {
       setTags(tags.filter(tag => tag.id !== tagToDelete));
       setShowDeleteDialog(false);
       toast.success('标签已成功删除');
+      
+      // 触发刷新标签列表事件
+      const refreshTagsEvent = new CustomEvent('refreshTagsList');
+      window.dispatchEvent(refreshTagsEvent);
     } catch (error) {
       console.error('删除标签失败:', error);
       toast.error('删除标签失败');
@@ -166,6 +184,10 @@ export default function TagsManagement() {
       );
       setEditingId(null);
       toast.success('标签已更新');
+      
+      // 触发刷新标签列表事件
+      const refreshTagsEvent = new CustomEvent('refreshTagsList');
+      window.dispatchEvent(refreshTagsEvent);
     } catch (error) {
       console.error('更新标签失败:', error);
       setError('更新标签失败');
@@ -235,56 +257,69 @@ export default function TagsManagement() {
           </div>
         )}
         
-        <form onSubmit={handleAddTag} className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="tag-name" className="text-sm font-medium">
-                标签名称
-              </label>
-              <input
-                id="tag-name"
-                type="text"
-                value={newTag.name}
-                onChange={(e) => {
-                  const name = e.target.value;
-                  setNewTag({
-                    name,
-                    slug: newTag.slug || generateSlug(name),
-                  });
-                }}
-                className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="标签名称"
-              />
+        {/* 显示标签数量限制提示 */}
+        {tags.length >= MAX_TAGS_LIMIT - 5 && tags.length < MAX_TAGS_LIMIT && (
+          <div className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-600">
+            注意：您已创建 {tags.length} 个标签，最多可创建 {MAX_TAGS_LIMIT} 个标签
+          </div>
+        )}
+        
+        {tags.length >= MAX_TAGS_LIMIT ? (
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-500">
+            已达到最大标签数限制 ({MAX_TAGS_LIMIT}个)，请删除一些标签后再添加新标签
+          </div>
+        ) : (
+          <form onSubmit={handleAddTag} className="space-y-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="tag-name" className="text-sm font-medium">
+                  标签名称
+                </label>
+                <input
+                  id="tag-name"
+                  type="text"
+                  value={newTag.name}
+                  onChange={(e) => {
+                    const name = e.target.value;
+                    setNewTag({
+                      name,
+                      slug: newTag.slug || generateSlug(name),
+                    });
+                  }}
+                  className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="标签名称"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <label htmlFor="tag-slug" className="text-sm font-medium">
+                  标签别名
+                </label>
+                <input
+                  id="tag-slug"
+                  type="text"
+                  value={newTag.slug}
+                  onChange={(e) => setNewTag({ ...newTag, slug: e.target.value })}
+                  className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  placeholder="url-friendly-name"
+                />
+                <p className="text-xs text-muted-foreground">
+                  用于 URL 的短名称，只允许字母、数字和连字符
+                </p>
+              </div>
             </div>
             
-            <div className="space-y-2">
-              <label htmlFor="tag-slug" className="text-sm font-medium">
-                标签别名
-              </label>
-              <input
-                id="tag-slug"
-                type="text"
-                value={newTag.slug}
-                onChange={(e) => setNewTag({ ...newTag, slug: e.target.value })}
-                className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                placeholder="url-friendly-name"
-              />
-              <p className="text-xs text-muted-foreground">
-                用于 URL 的短名称，只允许字母、数字和连字符
-              </p>
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+              >
+                <PlusIcon className="mr-2 h-4 w-4" />
+                添加标签
+              </button>
             </div>
-          </div>
-          
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              <PlusIcon className="mr-2 h-4 w-4" />
-              添加标签
-            </button>
-          </div>
-        </form>
+          </form>
+        )}
       </div>
 
       {/* 标签列表 */}

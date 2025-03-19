@@ -147,6 +147,12 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       const updatedPost = await res.json();
       setPost(updatedPost);
       
+      // 触发自定义事件，通知布局组件刷新文章列表
+      const refreshEvent = new CustomEvent('refreshPostsList', {
+        detail: { postId: post.id }
+      });
+      window.dispatchEvent(refreshEvent);
+      
       // 显示保存成功提示
       toast.success("文章已保存", {
         description: "所有更改已成功保存",
@@ -186,6 +192,12 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       const updatedPost = await res.json();
       setPost(updatedPost);
       
+      // 触发自定义事件，通知布局组件刷新文章列表
+      const refreshEvent = new CustomEvent('refreshPostsList', {
+        detail: { postId: post.id }
+      });
+      window.dispatchEvent(refreshEvent);
+      
       // 显示操作成功提示
       if (post.published) {
         toast.info("已转为草稿", {
@@ -220,6 +232,10 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
         const data = await res.json();
         throw new Error(data.error || '删除文章失败');
       }
+      
+      // 触发自定义事件，通知布局组件刷新文章列表
+      const refreshEvent = new CustomEvent('refreshPostsList');
+      window.dispatchEvent(refreshEvent);
       
       toast.success("文章已成功删除");
       // 删除后返回文章列表

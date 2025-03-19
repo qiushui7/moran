@@ -8,8 +8,6 @@ import {
   LogOutIcon,
   SearchIcon,
   PlusIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
   FileTextIcon,
   LoaderIcon
 } from "lucide-react";
@@ -49,29 +47,79 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const postsPerPage = 5;
-
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+  
   // 检查登录状态
   useEffect(() => {
     const loggedIn = localStorage.getItem("admin_logged_in") === "true";
     setIsLoggedIn(loggedIn);
   }, []);
   
-  // 获取文章列表
+  // 获取文章列表和标签列表
   useEffect(() => {
     if (isLoggedIn) {
       fetchPosts();
+      fetchTags();
     }
+  }, [isLoggedIn]);
+  
+  // 添加事件监听，以便在文章更新后刷新列表
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
+    // 刷新文章列表事件处理函数
+    const handleRefreshPosts = (e: CustomEvent) => {
+      console.log('刷新文章列表事件触发');
+      fetchPosts();
+      
+      // 如果事件中包含文章ID，则选中该文章
+      if (e.detail?.postId) {
+        setSelectedPostId(e.detail.postId);
+      }
+    };
+    
+    // 添加事件监听
+    window.addEventListener('refreshPostsList', handleRefreshPosts as EventListener);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('refreshPostsList', handleRefreshPosts as EventListener);
+    };
+  }, [isLoggedIn]);
+  
+  // 添加事件监听，以便在标签更新后刷新标签列表
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
+    // 刷新标签列表事件处理函数
+    const handleRefreshTags = () => {
+      console.log('刷新标签列表事件触发');
+      fetchTags();
+    };
+    
+    // 添加事件监听
+    window.addEventListener('refreshTagsList', handleRefreshTags as EventListener);
+    
+    // 清理函数
+    return () => {
+      window.removeEventListener('refreshTagsList', handleRefreshTags as EventListener);
+    };
   }, [isLoggedIn]);
   
   // 从API获取文章
   const fetchPosts = async () => {
     setIsLoading(true);
     try {
-      const res = await fetch('/api/posts');
+      let url = '/api/posts';
+      // 如果有选中的标签，添加标签过滤
+      if (selectedTagId) {
+        url += `?tagId=${selectedTagId}`;
+      }
+      
+      const res = await fetch(url);
       if (!res.ok) {
         throw new Error('获取文章失败');
       }
@@ -83,18 +131,41 @@ export default function AdminLayout({
       setIsLoading(false);
     }
   };
+  
+  // 获取所有标签
+  const fetchTags = async () => {
+    try {
+      const res = await fetch('/api/tags');
+      if (!res.ok) {
+        throw new Error('获取标签失败');
+      }
+      const data = await res.json();
+      setTags(data);
+    } catch (error) {
+      console.error('获取标签失败:', error);
+    }
+  };
+
+  // 处理标签选择
+  const handleTagSelect = (tagId: string | null) => {
+    setSelectedTagId(tagId);
+    setIsLoading(true);
+    // 重置当前选择的文章
+    setSelectedPostId(null);
+  };
+  
+  // 当标签选择变化时重新获取文章
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchPosts();
+    }
+  }, [selectedTagId, isLoggedIn]);
 
   // 过滤后的文章
   const filteredPosts = posts.filter(post => 
     post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
     post.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
-  
-  // 分页
-  const indexOfLastPost = currentPage * postsPerPage;
-  const indexOfFirstPost = indexOfLastPost - postsPerPage;
-  const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
-  const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
 
   // 处理登出
   const handleLogout = () => {
@@ -112,18 +183,17 @@ export default function AdminLayout({
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="border-b px-4 py-3">
-        <div className="flex items-center justify-between">
-          <Link href="/" className="text-lg font-bold">
-            墨韵
-          </Link>
-        </div>
-      </header>
-
       <div className="flex flex-1">
         {/* 左侧导航 - 包含文章列表 */}
-        <aside className="flex-shrink-0 border-r bg-muted/30 w-[280px] md:w-[320px]">
+        <aside className="flex-shrink-0 border-r bg-muted/30 w-[280px] md:w-[320px] h-screen fixed">
           <div className="flex h-full flex-col">
+            <header className="border-b px-4 py-3">
+              <div className="flex items-center justify-between">
+                <Link href="/" className="text-lg font-bold">
+                  墨韵
+                </Link>
+              </div>
+            </header>
             <div className="p-4">
               <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -134,6 +204,35 @@ export default function AdminLayout({
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full rounded-md border border-input pl-10 pr-4 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
+              </div>
+            </div>
+            
+            {/* 标签筛选 */}
+            <div className="px-4 pb-3">
+              <div className="flex flex-wrap gap-1.5">
+                <button
+                  onClick={() => handleTagSelect(null)}
+                  className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                    selectedTagId === null 
+                      ? "bg-primary text-primary-foreground" 
+                      : "bg-muted hover:bg-muted/80"
+                  }`}
+                >
+                  全部
+                </button>
+                {tags.map(tag => (
+                  <button
+                    key={tag.id}
+                    onClick={() => handleTagSelect(tag.id)}
+                    className={`text-xs px-2 py-1 rounded-md transition-colors ${
+                      selectedTagId === tag.id 
+                        ? "bg-primary text-primary-foreground" 
+                        : "bg-muted hover:bg-muted/80"
+                    }`}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -155,8 +254,8 @@ export default function AdminLayout({
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {currentPosts.length > 0 ? (
-                    currentPosts.map((post) => (
+                  {filteredPosts.length > 0 ? (
+                    filteredPosts.map((post) => (
                       <Link
                         key={post.id}
                         href={`/admin/posts/edit/${post.id}`}
@@ -190,29 +289,6 @@ export default function AdminLayout({
               )}
             </div>
 
-            {/* 分页控制 */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-between border-t p-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md disabled:opacity-50 hover:bg-accent"
-                >
-                  <ChevronLeftIcon className="h-4 w-4" />
-                </button>
-                <span className="text-xs text-muted-foreground">
-                  第 {currentPage} / {totalPages} 页
-                </span>
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="inline-flex h-8 w-8 items-center justify-center rounded-md disabled:opacity-50 hover:bg-accent"
-                >
-                  <ChevronRightIcon className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-
             {/* 导航菜单 */}
             <nav className="px-2 py-4 border-t">
               <Link
@@ -240,7 +316,7 @@ export default function AdminLayout({
         </aside>
 
         {/* 右侧内容区域 */}
-        <main className="flex-1 overflow-auto p-6">
+        <main className="flex-1 overflow-auto p-6 ml-[280px] md:ml-[320px]">
           {children}
         </main>
       </div>

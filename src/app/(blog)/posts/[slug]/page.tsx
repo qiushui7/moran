@@ -18,13 +18,13 @@ export async function generateMetadata({ params }: PostPageParams) {
 
   if (!post) {
     return {
-      title: "文章不存在 - 秋水博客",
+      title: "文章不存在 - 墨韵",
       description: "找不到请求的文章",
     };
   }
 
   return {
-    title: `${post.title} - 秋水博客`,
+    title: `${post.title} - 墨韵`,
     description: post.excerpt || "阅读文章详情",
   };
 }

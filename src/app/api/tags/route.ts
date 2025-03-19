@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { APP_CONSTANTS } from "@/lib/utils";
 
 // 获取所有标签
 export async function GET() {
@@ -57,6 +58,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "标签名称或别名已存在" },
         { status: 409 }
+      );
+    }
+    
+    // 检查标签总数是否达到上限
+    const MAX_TAGS_LIMIT = APP_CONSTANTS.MAX_TAGS_LIMIT;
+    const totalTags = await prisma.tag.count();
+    
+    if (totalTags >= MAX_TAGS_LIMIT) {
+      return NextResponse.json(
+        { error: `已达到最大标签数限制 (${MAX_TAGS_LIMIT}个)` },
+        { status: 403 }
       );
     }
     

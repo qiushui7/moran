@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Tag } from "@prisma/client";
 
 export const metadata = {
-  title: "标签 - 秋水博客",
+  title: "标签 - 墨韵",
   description: "浏览博客中的所有标签",
 };
 

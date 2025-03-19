@@ -48,3 +48,11 @@ export function truncateText(text: string, maxLength: number = 120): string {
   if (text.length <= maxLength) return text
   return text.substring(0, maxLength) + "..."
 }
+
+/**
+ * 系统常量配置
+ */
+export const APP_CONSTANTS = {
+  MAX_TAGS_LIMIT: 20, // 最大标签数量
+  // 可以在此添加其他常量
+};

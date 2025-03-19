@@ -124,6 +124,12 @@ export default function NewPost() {
       
       const newPost = await res.json();
       
+      // 触发自定义事件，通知布局组件刷新文章列表
+      const refreshEvent = new CustomEvent('refreshPostsList', {
+        detail: { postId: newPost.id }
+      });
+      window.dispatchEvent(refreshEvent);
+      
       toast.success(publish ? "文章已发布" : "文章已保存为草稿");
       
       // 跳转到编辑页面
