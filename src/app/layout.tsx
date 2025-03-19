@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import Header from "@/components/header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "qiushui-blog",
+  title: "墨韵",
   description: "一个极简风格的个人博客",
 };
 
@@ -35,13 +34,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex flex-col min-h-screen max-w-3xl mx-auto px-4">
-            <Header />
-            <main className="flex-1 py-6">{children}</main>
-            <footer className="py-6 text-center text-sm text-muted-foreground">
-              © {new Date().getFullYear()} 保留所有权利.
-            </footer>
-          </div>
+          {children}
         </ThemeProvider>
       </body>
     </html>

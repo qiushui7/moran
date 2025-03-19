@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
 import { TypeWriter } from "./type-writer";
+import { LockIcon } from "lucide-react";
 
 const NAV_ITEMS = [
   { label: "首页", href: "/" },
@@ -44,6 +45,13 @@ export default function Header() {
               {item.label}
             </Link>
           ))}
+          <Link
+            href="/admin"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+          >
+            <LockIcon className="h-3 w-3" />
+            <span>管理</span>
+          </Link>
         </div>
         <ThemeToggle />
       </nav>
