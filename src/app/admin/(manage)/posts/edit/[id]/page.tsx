@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { formatDateTime } from "@/lib/utils";
 
 // 类型定义
 type Tag = {
@@ -44,18 +45,6 @@ type Post = {
 type PageParams = {
   id: string;
 };
-
-// 格式化日期时间
-function formatDateTime(dateString: string): string {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(date);
-}
 
 export default function EditPost({ params }: { params: Promise<PageParams> }) {
   // 使用React.use()解包params

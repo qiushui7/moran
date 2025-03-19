@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { redirect, usePathname } from "next/navigation";
 import { 
   TagIcon, 
   LogOutIcon,
@@ -11,6 +11,9 @@ import {
   FileTextIcon,
   LoaderIcon
 } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { formatDate } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 
 // 类型定义
 type Tag = {
@@ -28,22 +31,12 @@ type Post = {
   tags: Tag[];
 };
 
-// 格式化日期
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-  }).format(date);
-}
-
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState("");
   const [posts, setPosts] = useState<Post[]>([]);
@@ -51,12 +44,9 @@ export default function AdminLayout({
   const [isLoading, setIsLoading] = useState(true);
   const [tags, setTags] = useState<Tag[]>([]);
   const [selectedTagId, setSelectedTagId] = useState<string | null>(null);
+
+  const isLoggedIn = useMemo(() => status === "authenticated", [status]);
   
-  // 检查登录状态
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("admin_logged_in") === "true";
-    setIsLoggedIn(loggedIn);
-  }, []);
   
   // 获取文章列表和标签列表
   useEffect(() => {
@@ -64,7 +54,14 @@ export default function AdminLayout({
       fetchPosts();
       fetchTags();
     }
-  }, [isLoggedIn]);
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      redirect("/admin");
+    }
+    console.log(status);
+  },[status])
   
   // 添加事件监听，以便在文章更新后刷新列表
   useEffect(() => {
@@ -80,11 +77,7 @@ export default function AdminLayout({
         setSelectedPostId(e.detail.postId);
       }
     };
-    
-    // 添加事件监听
     window.addEventListener('refreshPostsList', handleRefreshPosts as EventListener);
-    
-    // 清理函数
     return () => {
       window.removeEventListener('refreshPostsList', handleRefreshPosts as EventListener);
     };
@@ -99,11 +92,7 @@ export default function AdminLayout({
       console.log('刷新标签列表事件触发');
       fetchTags();
     };
-    
-    // 添加事件监听
     window.addEventListener('refreshTagsList', handleRefreshTags as EventListener);
-    
-    // 清理函数
     return () => {
       window.removeEventListener('refreshTagsList', handleRefreshTags as EventListener);
     };
@@ -169,17 +158,8 @@ export default function AdminLayout({
 
   // 处理登出
   const handleLogout = () => {
-    localStorage.removeItem("admin_logged_in");
-    setIsLoggedIn(false);
+    signOut({ callbackUrl: "/admin" });
   };
-
-  // 如果未登录，仅显示子组件
-  if (!isLoggedIn) {
-    return <>{children}</>;
-  }
-
-  // 计算是否在编辑或创建文章页面
-  const isEditOrCreatePage = pathname?.includes('/admin/posts/edit') || pathname?.includes('/admin/posts/new');
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -192,6 +172,24 @@ export default function AdminLayout({
                 <Link href="/" className="text-lg font-bold">
                   墨韵
                 </Link>
+                {session?.user && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground hidden sm:inline-block">
+                      {session.user.name || session.user.email}
+                    </span>
+                    {session.user.image ? (
+                      <img 
+                        src={session.user.image} 
+                        alt="User avatar" 
+                        className="h-8 w-8 rounded-full border"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                        {session.user.name?.charAt(0) || session.user.email?.charAt(0) || '?'}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </header>
             <div className="p-4">
@@ -306,10 +304,10 @@ export default function AdminLayout({
             <div className="border-t p-2">
               <button
                 onClick={handleLogout}
-                className="flex w-full items-center gap-2 rounded-md p-2 text-sm hover:bg-accent"
+                className="flex w-full items-center gap-2 rounded-md p-2 text-sm text-red-500 hover:bg-red-50 hover:text-red-600 cursor-pointer transition-colors"
               >
                 <LogOutIcon className="h-4 w-4" />
-                <span>登出</span>
+                <span>退出登录</span>
               </button>
             </div>
           </div>

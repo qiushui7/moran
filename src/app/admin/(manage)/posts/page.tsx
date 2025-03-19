@@ -198,7 +198,7 @@ export default function PostsManagement() {
                   <td className="px-4 py-3 text-sm">
                     <div className="font-medium">{post.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground line-clamp-1 md:hidden">
-                      {formatDate(new Date(post.createdAt))}
+                      {formatDate(post.createdAt)}
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 text-sm sm:table-cell">
@@ -214,7 +214,7 @@ export default function PostsManagement() {
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 text-sm text-muted-foreground md:table-cell">
-                    {formatDate(new Date(post.createdAt))}
+                    {formatDate(post.createdAt)}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span

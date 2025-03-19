@@ -5,15 +5,18 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(date)
+// 格式化日期
+export function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(date);
 }
 
-export function formatDateTime(date: Date): string {
+export function formatDateTime(dateString: string): string {
+  const date = new Date(dateString);
   return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "2-digit",
