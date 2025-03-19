@@ -16,15 +16,31 @@ export default function AdminLogin() {
     setLoading(true);
     setError("");
 
-    // 简单的前端验证 - 实际应用中应使用真实后端验证
-    if (username === "admin" && password === "password") {
-      // 这里应该是真实后端验证逻辑，设置cookie或localstorage
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setError(data.error || "登录失败");
+        setLoading(false);
+        return;
+      }
+
+      // 登录成功，设置本地存储并跳转
       localStorage.setItem("admin_logged_in", "true");
       router.push("/admin/posts");
-    } else {
-      setError("用户名或密码错误");
+    } catch (error) {
+      console.error('登录失败:', error);
+      setError("登录请求失败");
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

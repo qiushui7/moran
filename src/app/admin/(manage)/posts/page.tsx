@@ -8,48 +8,73 @@ import {
   TrashIcon, 
   SearchIcon,
   ChevronLeftIcon,
-  ChevronRightIcon
+  ChevronRightIcon,
+  AlertTriangleIcon,
+  LoaderIcon
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-// 模拟文章数据
-const MOCK_POSTS = [
-  {
-    id: "1",
-    title: "Next.js 13 新特性介绍",
-    excerpt: "探索 Next.js 13 的新特性和改进，包括 App Router、Server Components 等",
-    published: true,
-    createdAt: new Date("2023-04-15"),
-    tags: ["Next.js", "React", "Web开发"]
-  },
-  {
-    id: "2",
-    title: "使用 Tailwind CSS 构建响应式界面",
-    excerpt: "学习如何使用 Tailwind CSS 高效构建美观且响应式的用户界面",
-    published: true,
-    createdAt: new Date("2023-05-22"),
-    tags: ["CSS", "Tailwind", "响应式设计"]
-  },
-  {
-    id: "3",
-    title: "TypeScript 高级类型体操",
-    excerpt: "深入探讨 TypeScript 的高级类型系统，及其在大型项目中的应用",
-    published: false,
-    createdAt: new Date("2023-06-10"),
-    tags: ["TypeScript", "JavaScript"]
-  },
-];
+// 文章类型定义
+type Tag = {
+  id: string;
+  name: string;
+  slug: string;
+};
+
+type Post = {
+  id: string;
+  title: string;
+  excerpt?: string;
+  published: boolean;
+  createdAt: string;
+  tags: Tag[];
+};
 
 export default function PostsManagement() {
-  const [posts, setPosts] = useState(MOCK_POSTS);
+  const [posts, setPosts] = useState<Post[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [postToDelete, setPostToDelete] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const postsPerPage = 10;
   
-  // 过滤后的文章
+  // 加载文章数据
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+  
+  // 获取所有文章
+  const fetchPosts = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/posts');
+      if (!res.ok) {
+        throw new Error('获取文章失败');
+      }
+      const data = await res.json();
+      setPosts(data);
+    } catch (error) {
+      console.error('获取文章失败:', error);
+      toast.error('获取文章失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // 根据搜索词过滤文章
   const filteredPosts = posts.filter(post => 
     post.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    post.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
+    post.tags.some(tag => tag.name.toLowerCase().includes(searchTerm.toLowerCase()))
   );
   
   // 分页
@@ -58,12 +83,48 @@ export default function PostsManagement() {
   const currentPosts = filteredPosts.slice(indexOfFirstPost, indexOfLastPost);
   const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
   
-  // 删除文章（模拟）
-  const handleDelete = (id: string) => {
-    if (confirm("确定要删除这篇文章吗？此操作不可撤销。")) {
-      setPosts(posts.filter(post => post.id !== id));
+  // 打开删除对话框
+  const openDeleteDialog = (id: string) => {
+    setPostToDelete(id);
+    setShowDeleteDialog(true);
+  };
+  
+  // 删除文章
+  const handleDeletePost = async () => {
+    if (!postToDelete) return;
+    
+    try {
+      const res = await fetch(`/api/posts/${postToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || '删除文章失败');
+      }
+      
+      setPosts(posts.filter(post => post.id !== postToDelete));
+      setShowDeleteDialog(false);
+      
+      toast.success("文章已删除", {
+        description: "文章已成功删除"
+      });
+    } catch (error) {
+      console.error('删除文章失败:', error);
+      toast.error('删除文章失败');
     }
   };
+  
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <LoaderIcon className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="space-y-6">
@@ -77,6 +138,36 @@ export default function PostsManagement() {
           新建文章
         </Link>
       </div>
+      
+      {/* 删除确认对话框 */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangleIcon className="h-5 w-5" />
+              确认删除文章
+            </DialogTitle>
+            <DialogDescription>
+              此操作将永久删除该文章，删除后将无法恢复。确定要继续吗？
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <button
+              onClick={() => setShowDeleteDialog(false)}
+              className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleDeletePost}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              确认删除
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       <div className="relative">
         <SearchIcon className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -107,23 +198,23 @@ export default function PostsManagement() {
                   <td className="px-4 py-3 text-sm">
                     <div className="font-medium">{post.title}</div>
                     <div className="mt-1 text-xs text-muted-foreground line-clamp-1 md:hidden">
-                      {formatDate(post.createdAt)}
+                      {formatDate(new Date(post.createdAt))}
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 text-sm sm:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {post.tags.map((tag) => (
                         <span
-                          key={tag}
+                          key={tag.id}
                           className="inline-flex items-center rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary"
                         >
-                          {tag}
+                          {tag.name}
                         </span>
                       ))}
                     </div>
                   </td>
                   <td className="hidden px-4 py-3 text-sm text-muted-foreground md:table-cell">
-                    {formatDate(post.createdAt)}
+                    {formatDate(new Date(post.createdAt))}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span
@@ -146,7 +237,7 @@ export default function PostsManagement() {
                         <span className="sr-only">编辑</span>
                       </Link>
                       <button
-                        onClick={() => handleDelete(post.id)}
+                        onClick={() => openDeleteDialog(post.id)}
                         className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input text-destructive hover:bg-destructive/10"
                       >
                         <TrashIcon className="h-4 w-4" />

@@ -1,32 +1,68 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { 
   PlusIcon, 
   XIcon, 
   SaveIcon, 
   EditIcon, 
-  TrashIcon
+  TrashIcon,
+  AlertTriangleIcon,
+  LoaderIcon
 } from "lucide-react";
+import { toast } from "sonner";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
-// 模拟标签数据
-const MOCK_TAGS = [
-  { id: "1", name: "Next.js", slug: "nextjs", count: 8 },
-  { id: "2", name: "React", slug: "react", count: 12 },
-  { id: "3", name: "TypeScript", slug: "typescript", count: 5 },
-  { id: "4", name: "Tailwind CSS", slug: "tailwind-css", count: 7 },
-  { id: "5", name: "JavaScript", slug: "javascript", count: 15 },
-];
+// 标签类型定义
+type Tag = {
+  id: string;
+  name: string;
+  slug: string;
+  count: number;
+};
 
 export default function TagsManagement() {
-  const [tags, setTags] = useState(MOCK_TAGS);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [newTag, setNewTag] = useState({ name: "", slug: "" });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState({ name: "", slug: "" });
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+  const [tagToDelete, setTagToDelete] = useState<string | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  
+  // 加载标签数据
+  useEffect(() => {
+    fetchTags();
+  }, []);
+  
+  // 获取所有标签
+  const fetchTags = async () => {
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/tags');
+      if (!res.ok) {
+        throw new Error('获取标签失败');
+      }
+      const data = await res.json();
+      setTags(data);
+    } catch (error) {
+      console.error('获取标签失败:', error);
+      toast.error('获取标签失败');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // 添加新标签
-  const handleAddTag = (e: React.FormEvent) => {
+  const handleAddTag = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -35,33 +71,70 @@ export default function TagsManagement() {
       return;
     }
 
-    if (tags.some(tag => tag.slug === newTag.slug)) {
-      setError("标签别名已存在");
-      return;
+    try {
+      const res = await fetch('/api/tags', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newTag),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.error || '添加标签失败');
+        return;
+      }
+      
+      // 添加新标签到列表
+      setTags([...tags, { ...data, count: 0 }]);
+      setNewTag({ name: "", slug: "" });
+      toast.success('标签创建成功');
+    } catch (error) {
+      console.error('添加标签失败:', error);
+      setError('添加标签失败');
     }
+  };
 
-    const newId = (Math.max(...tags.map(tag => parseInt(tag.id))) + 1).toString();
-    
-    setTags([...tags, { ...newTag, id: newId, count: 0 }]);
-    setNewTag({ name: "", slug: "" });
+  // 打开删除标签对话框
+  const openDeleteDialog = (id: string) => {
+    setTagToDelete(id);
+    setShowDeleteDialog(true);
   };
 
   // 删除标签
-  const handleDeleteTag = (id: string) => {
-    if (confirm("确定要删除这个标签吗？相关联的文章将会失去此标签。")) {
-      setTags(tags.filter(tag => tag.id !== id));
+  const handleDeleteTag = async () => {
+    if (!tagToDelete) return;
+    
+    try {
+      const res = await fetch(`/api/tags/${tagToDelete}`, {
+        method: 'DELETE',
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || '删除标签失败');
+      }
+      
+      setTags(tags.filter(tag => tag.id !== tagToDelete));
+      setShowDeleteDialog(false);
+      toast.success('标签已成功删除');
+    } catch (error) {
+      console.error('删除标签失败:', error);
+      toast.error('删除标签失败');
     }
   };
 
   // 开始编辑标签
-  const handleStartEdit = (tag: typeof MOCK_TAGS[0]) => {
+  const handleStartEdit = (tag: Tag) => {
     setEditingId(tag.id);
     setEditForm({ name: tag.name, slug: tag.slug });
     setError("");
   };
 
   // 保存编辑
-  const handleSaveEdit = (id: string) => {
+  const handleSaveEdit = async (id: string) => {
     setError("");
 
     if (!editForm.name || !editForm.slug) {
@@ -69,17 +142,34 @@ export default function TagsManagement() {
       return;
     }
 
-    if (tags.some(tag => tag.slug === editForm.slug && tag.id !== id)) {
-      setError("标签别名已存在");
-      return;
+    try {
+      const res = await fetch(`/api/tags/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm),
+      });
+      
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setError(data.error || '更新标签失败');
+        return;
+      }
+      
+      // 更新标签列表
+      setTags(
+        tags.map(tag => 
+          tag.id === id ? { ...tag, name: editForm.name, slug: editForm.slug } : tag
+        )
+      );
+      setEditingId(null);
+      toast.success('标签已更新');
+    } catch (error) {
+      console.error('更新标签失败:', error);
+      setError('更新标签失败');
     }
-
-    setTags(
-      tags.map(tag => 
-        tag.id === id ? { ...tag, name: editForm.name, slug: editForm.slug } : tag
-      )
-    );
-    setEditingId(null);
   };
 
   // 自动生成别名（slug）
@@ -90,9 +180,50 @@ export default function TagsManagement() {
       .replace(/[^\w\-]+/g, "");
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <LoaderIcon className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <h2 className="text-xl font-semibold">标签管理</h2>
+
+      {/* 删除确认对话框 */}
+      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-600">
+              <AlertTriangleIcon className="h-5 w-5" />
+              确认删除标签
+            </DialogTitle>
+            <DialogDescription>
+              此操作将删除该标签。相关联的文章将会失去此标签。确定要继续吗？
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter className="mt-4 gap-2 sm:gap-0">
+            <button
+              onClick={() => setShowDeleteDialog(false)}
+              className="inline-flex h-10 items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleDeleteTag}
+              className="inline-flex h-10 items-center justify-center rounded-md bg-red-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-red-700"
+            >
+              确认删除
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* 添加新标签表单 */}
       <div className="rounded-md border p-4">
@@ -168,82 +299,90 @@ export default function TagsManagement() {
             </tr>
           </thead>
           <tbody>
-            {tags.map((tag) => (
-              <tr key={tag.id} className="border-b">
-                <td className="px-4 py-3 text-sm">
-                  {editingId === tag.id ? (
-                    <input
-                      type="text"
-                      value={editForm.name}
-                      onChange={(e) => 
-                        setEditForm({ ...editForm, name: e.target.value })
-                      }
-                      className="w-full rounded-md border border-input px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  ) : (
-                    tag.name
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm">
-                  {editingId === tag.id ? (
-                    <input
-                      type="text"
-                      value={editForm.slug}
-                      onChange={(e) => 
-                        setEditForm({ ...editForm, slug: e.target.value })
-                      }
-                      className="w-full rounded-md border border-input px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    />
-                  ) : (
-                    <code className="rounded bg-muted px-1 py-0.5 text-xs">
-                      {tag.slug}
-                    </code>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-sm text-muted-foreground">
-                  {tag.count}
-                </td>
-                <td className="px-4 py-3 text-right text-sm">
-                  <div className="flex justify-end space-x-2">
+            {tags.length > 0 ? (
+              tags.map((tag) => (
+                <tr key={tag.id} className="border-b">
+                  <td className="px-4 py-3 text-sm">
                     {editingId === tag.id ? (
-                      <>
-                        <button
-                          onClick={() => handleSaveEdit(tag.id)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input text-green-600 hover:bg-green-50"
-                        >
-                          <SaveIcon className="h-4 w-4" />
-                          <span className="sr-only">保存</span>
-                        </button>
-                        <button
-                          onClick={() => setEditingId(null)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input hover:bg-accent"
-                        >
-                          <XIcon className="h-4 w-4" />
-                          <span className="sr-only">取消</span>
-                        </button>
-                      </>
+                      <input
+                        type="text"
+                        value={editForm.name}
+                        onChange={(e) => 
+                          setEditForm({ ...editForm, name: e.target.value })
+                        }
+                        className="w-full rounded-md border border-input px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
                     ) : (
-                      <>
-                        <button
-                          onClick={() => handleStartEdit(tag)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input hover:bg-accent"
-                        >
-                          <EditIcon className="h-4 w-4" />
-                          <span className="sr-only">编辑</span>
-                        </button>
-                        <button
-                          onClick={() => handleDeleteTag(tag.id)}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input text-destructive hover:bg-destructive/10"
-                        >
-                          <TrashIcon className="h-4 w-4" />
-                          <span className="sr-only">删除</span>
-                        </button>
-                      </>
+                      tag.name
                     )}
-                  </div>
+                  </td>
+                  <td className="px-4 py-3 text-sm">
+                    {editingId === tag.id ? (
+                      <input
+                        type="text"
+                        value={editForm.slug}
+                        onChange={(e) => 
+                          setEditForm({ ...editForm, slug: e.target.value })
+                        }
+                        className="w-full rounded-md border border-input px-3 py-1 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      />
+                    ) : (
+                      <code className="rounded bg-muted px-1 py-0.5 text-xs">
+                        {tag.slug}
+                      </code>
+                    )}
+                  </td>
+                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                    {tag.count}
+                  </td>
+                  <td className="px-4 py-3 text-right text-sm">
+                    <div className="flex justify-end space-x-2">
+                      {editingId === tag.id ? (
+                        <>
+                          <button
+                            onClick={() => handleSaveEdit(tag.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input text-green-600 hover:bg-green-50"
+                          >
+                            <SaveIcon className="h-4 w-4" />
+                            <span className="sr-only">保存</span>
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input hover:bg-accent"
+                          >
+                            <XIcon className="h-4 w-4" />
+                            <span className="sr-only">取消</span>
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleStartEdit(tag)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input hover:bg-accent"
+                          >
+                            <EditIcon className="h-4 w-4" />
+                            <span className="sr-only">编辑</span>
+                          </button>
+                          <button
+                            onClick={() => openDeleteDialog(tag.id)}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-md border border-input text-destructive hover:bg-destructive/10"
+                          >
+                            <TrashIcon className="h-4 w-4" />
+                            <span className="sr-only">删除</span>
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={4} className="px-4 py-6 text-center text-sm text-muted-foreground">
+                  暂无标签，请添加新标签
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
       </div>

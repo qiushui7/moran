@@ -1,134 +1,184 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { 
-  SaveIcon,
+  SaveIcon, 
+  EyeIcon, 
   ArrowLeftIcon,
-  TagIcon
+  LoaderIcon
 } from "lucide-react";
+import { toast } from "sonner";
 
-// 获取所有可用的标签
-const AVAILABLE_TAGS = [
-  { id: "1", name: "Next.js", slug: "nextjs" },
-  { id: "2", name: "React", slug: "react" },
-  { id: "3", name: "TypeScript", slug: "typescript" },
-  { id: "4", name: "JavaScript", slug: "javascript" },
-  { id: "5", name: "Tailwind", slug: "tailwind" },
-  { id: "6", name: "CSS", slug: "css" },
-  { id: "7", name: "响应式设计", slug: "responsive-design" },
-  { id: "8", name: "Web开发", slug: "web-development" },
-  { id: "9", name: "状态管理", slug: "state-management" },
-  { id: "10", name: "Redux", slug: "redux" },
-  { id: "11", name: "Zustand", slug: "zustand" },
-  { id: "12", name: "API", slug: "api" },
-  { id: "13", name: "后端", slug: "backend" },
-];
-
-// 生成友好的URL别名
-function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .trim()
-    .replace(/[\s]+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-');
-}
+// 类型定义
+type Tag = {
+  id: string;
+  name: string;
+  slug: string;
+};
 
 export default function NewPost() {
   const router = useRouter();
-  const [isSaving, setIsSaving] = useState(false);
-  const [showTagSelector, setShowTagSelector] = useState(false);
-  const [error, setError] = useState("");
-  
-  // 新文章状态
   const [post, setPost] = useState({
     title: "",
     slug: "",
+    content: "",
     excerpt: "",
-    content: "# 新文章标题\n\n## 小标题\n\n文章内容...",
-    published: false,
-    tags: [] as string[]
+    published: false
   });
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<Tag[]>([]);
+  const [showTagSelector, setShowTagSelector] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const title = e.target.value;
+  // 获取所有标签
+  useEffect(() => {
+    const fetchTags = async () => {
+      try {
+        const res = await fetch('/api/tags');
+        if (!res.ok) {
+          throw new Error('获取标签失败');
+        }
+        const data = await res.json();
+        setAvailableTags(data);
+      } catch (error) {
+        console.error('获取标签失败:', error);
+        toast.error('获取标签失败');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchTags();
+  }, []);
+
+  // 根据标题自动生成别名
+  const generateSlug = (title: string) => {
+    return title
+      .toLowerCase()
+      .replace(/[\s]+/g, '-')
+      .replace(/[^\w\-]+/g, '')
+      .replace(/\-\-+/g, '-')
+      .replace(/^-+/, '')
+      .replace(/-+$/, '');
+  };
+
+  // 标题变化时自动生成别名
+  const handleTitleChange = (title: string) => {
     setPost({
       ...post,
       title,
-      slug: post.slug || generateSlug(title) // 如果slug为空，则根据标题自动生成
+      slug: post.slug || generateSlug(title)
     });
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
-  ) => {
-    const { name, value } = e.target;
-    setPost({
-      ...post,
-      [name]: value
-    });
-  };
-
-  const toggleTag = (tagName: string) => {
-    if (post.tags.includes(tagName)) {
-      setPost({
-        ...post,
-        tags: post.tags.filter(t => t !== tagName)
-      });
+  // 切换标签选择
+  const toggleTag = (tagId: string) => {
+    if (selectedTags.includes(tagId)) {
+      setSelectedTags(selectedTags.filter(id => id !== tagId));
     } else {
-      setPost({
-        ...post,
-        tags: [...post.tags, tagName]
-      });
+      setSelectedTags([...selectedTags, tagId]);
     }
   };
 
-  const handleSave = () => {
-    // 验证表单
-    if (!post.title.trim()) {
-      setError("文章标题不能为空");
+  // 保存文章
+  const handleSave = async (publish: boolean = false) => {
+    // 验证必填字段
+    if (!post.title) {
+      setError("标题不能为空");
       return;
     }
     
-    if (!post.slug.trim()) {
+    if (!post.slug) {
       setError("URL别名不能为空");
+      return;
+    }
+    
+    if (!post.content) {
+      setError("内容不能为空");
       return;
     }
     
     setIsSaving(true);
     setError("");
     
-    // 模拟保存请求
-    setTimeout(() => {
-      // 在实际应用中，这里会发送API请求保存数据
+    try {
+      const res = await fetch('/api/posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...post,
+          published: publish,
+          tags: selectedTags
+        }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || '创建文章失败');
+      }
+      
+      const newPost = await res.json();
+      
+      toast.success(publish ? "文章已发布" : "文章已保存为草稿");
+      
+      // 跳转到编辑页面
+      router.push(`/admin/posts/edit/${newPost.id}`);
+    } catch (error: any) {
+      console.error("创建文章失败:", error);
+      setError(error.message || "创建文章失败");
       setIsSaving(false);
-      // 显示成功消息
-      alert("文章创建成功！");
-      // 假设发布成功，重定向到编辑页面
-      // 这里使用一个假的ID，实际中应该使用后端返回的ID
-      router.push("/admin/tags");
-    }, 800);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[70vh] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <LoaderIcon className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">加载中...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">创建新文章</h2>
+        <h2 className="text-xl font-semibold">新建文章</h2>
         <div className="flex gap-2">
           <button
-            onClick={handleSave}
+            onClick={() => router.push("/admin/posts")}
+            className="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+          >
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            返回列表
+          </button>
+          <button
+            onClick={() => handleSave(true)}
+            className="inline-flex items-center rounded-md bg-green-100 px-4 py-2 text-sm font-medium text-green-700 hover:bg-green-200 disabled:opacity-50"
+            disabled={isSaving}
+          >
+            <EyeIcon className="mr-2 h-4 w-4" />
+            直接发布
+          </button>
+          <button
+            onClick={() => handleSave(false)}
             className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
             disabled={isSaving}
           >
             <SaveIcon className="mr-2 h-4 w-4" />
-            {post.published ? "发布文章" : "保存为草稿"}
+            保存为草稿
           </button>
         </div>
       </div>
 
       {error && (
-        <div className="rounded-md bg-red-50 p-4 text-sm text-red-500">
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-500">
           {error}
         </div>
       )}
@@ -141,10 +191,9 @@ export default function NewPost() {
           </label>
           <input
             id="title"
-            name="title"
             type="text"
             value={post.title}
-            onChange={handleTitleChange}
+            onChange={(e) => handleTitleChange(e.target.value)}
             className="w-full rounded-md border border-input px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="输入文章标题"
           />
@@ -157,10 +206,9 @@ export default function NewPost() {
           </label>
           <input
             id="slug"
-            name="slug"
             type="text"
             value={post.slug}
-            onChange={handleInputChange}
+            onChange={(e) => setPost({ ...post, slug: e.target.value })}
             className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="url-friendly-name"
           />
@@ -176,10 +224,9 @@ export default function NewPost() {
           </label>
           <textarea
             id="excerpt"
-            name="excerpt"
             rows={2}
             value={post.excerpt}
-            onChange={handleInputChange}
+            onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
             className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="文章简短摘要，显示在列表中"
           />
@@ -198,16 +245,19 @@ export default function NewPost() {
             </button>
           </div>
 
-          {post.tags.length > 0 ? (
+          {selectedTags.length > 0 ? (
             <div className="flex flex-wrap gap-1">
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
-                >
-                  {tag}
-                </span>
-              ))}
+              {selectedTags.map((tagId) => {
+                const tag = availableTags.find(t => t.id === tagId);
+                return tag ? (
+                  <span
+                    key={tag.id}
+                    className="inline-flex items-center rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary"
+                  >
+                    {tag.name}
+                  </span>
+                ) : null;
+              })}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">未选择标签</p>
@@ -216,13 +266,13 @@ export default function NewPost() {
           {showTagSelector && (
             <div className="mt-3 max-h-40 overflow-y-auto rounded-md border p-2">
               <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {AVAILABLE_TAGS.map((tag) => (
+                {availableTags.map((tag) => (
                   <div key={tag.id} className="flex items-center">
                     <input
                       type="checkbox"
                       id={`tag-${tag.id}`}
-                      checked={post.tags.includes(tag.name)}
-                      onChange={() => toggleTag(tag.name)}
+                      checked={selectedTags.includes(tag.id)}
+                      onChange={() => toggleTag(tag.id)}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
                     <label
@@ -245,27 +295,12 @@ export default function NewPost() {
           </label>
           <textarea
             id="content"
-            name="content"
             rows={15}
             value={post.content}
-            onChange={handleInputChange}
+            onChange={(e) => setPost({ ...post, content: e.target.value })}
             className="w-full rounded-md border border-input px-3 py-2 text-sm font-mono ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             placeholder="使用 Markdown 格式编写文章内容"
           />
-        </div>
-
-        {/* 发布设置 */}
-        <div className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            id="publish"
-            checked={post.published}
-            onChange={() => setPost({ ...post, published: !post.published })}
-            className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-          />
-          <label htmlFor="publish" className="text-sm font-medium">
-            创建后立即发布
-          </label>
         </div>
       </div>
     </div>
