@@ -48,6 +48,7 @@ model User {
   sessions      Session[]
   posts         Post[]
   tags          Tag[]     // 用户拥有的标签
+  profile       Profile?  // 用户的详细配置档案
 }
 
 model VerificationToken {
@@ -84,4 +85,17 @@ model Tag {
 
   @@unique([slug, userId]) // 每个用户的标签slug唯一
   @@unique([name, userId]) // 每个用户的标签名称唯一
+}
+
+// 用户配置档案表
+model Profile {
+  id           String  @id @default(cuid())
+  signature    String? @db.Text      // 个性签名
+  githubUrl    String?
+  linkedinUrl  String?
+  contactEmail String?
+  bio          String?      // 个人简介
+  title        String  @default("Welcome to my blog!") //博客标语
+  userId       String  @unique       // 关联用户ID
+  user         User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 } 

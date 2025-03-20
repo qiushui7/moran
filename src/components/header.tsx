@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { ThemeToggle } from "./theme-toggle";
 import { TypeWriter } from "./type-writer";
-import { LockIcon } from "lucide-react";
 import UserNavLink from "./user-navLink";
 
 const NAV_ITEMS = [
@@ -12,15 +11,16 @@ const NAV_ITEMS = [
   { label: "关于", href: `/about` },
 ];
 
-export default function Header() {
-
+export default async function Header(
+  {bio}: {bio: string[]}
+) {
+  console.log(bio)
   return (
     <header className="py-6 flex items-center justify-between">
       <Link href="/" className="text-xl font-bold tracking-tight flex items-center">
-        <span className="mr-1">Hi, I'm</span>
         <div className="inline-block min-w-24">
           <TypeWriter 
-            texts={["Benjamin", "a full-stack developer"]} 
+            texts={bio} 
             typingSpeed={120}
             deletingSpeed={80}
             delayBetweenTexts={2000}

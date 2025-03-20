@@ -1,16 +1,20 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Github, Linkedin, Mail } from "lucide-react";
-import type { Post, Tag, User } from "@prisma/client";
+import type { Post, Tag, User, Profile } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 type PostWithTags = Post & { tags: Tag[] };
+type UserWithProfile = User & { profile?: Profile | null };
 
 // 获取用户信息
-async function getUserById(userId: string): Promise<User | null> {
+async function getUserById(userId: string): Promise<UserWithProfile | null> {
   try {
     const user = await prisma.user.findUnique({
-      where: { id: userId }
+      where: { id: userId },
+      include: {
+        profile: true
+      }
     });
     
     return user;
@@ -40,9 +44,10 @@ async function getUserLatestPosts(userId: string): Promise<PostWithTags[]> {
 export default async function UserHomePage({
   params
 }: {
-  params: { userId: string }
+  params: Promise<{ userId: string }>
 }) {
-  const userId = params.userId;
+  const actualParams = await params;
+  const userId = actualParams.userId;
   const user = await getUserById(userId);
   
   // 如果用户不存在，返回404
@@ -51,6 +56,7 @@ export default async function UserHomePage({
   }
   
   const posts = await getUserLatestPosts(userId);
+  const profile = user.profile || null;
 
   return (
     <div className="space-y-12">
@@ -68,41 +74,48 @@ export default async function UserHomePage({
             </div>
           )}
           <div>
-            <h1 className="text-3xl font-bold tracking-tighter">{user.name || '匿名用户'}的博客</h1>
-            <p className="text-muted-foreground">{user.email}</p>
+            <h1 className="text-3xl font-bold tracking-tighter">{profile?.title || ''}</h1>
           </div>
         </div>
         
         <p className="text-muted-foreground max-w-[600px]">
-        风可以吹跑一片白纸，但是不能吹跑一只蝴蝶，因为生命的力量在于不顺从，我希望你们能勇敢的打破别人给你的枷锁，因为生活中的对和错都是人为决定的。
+          {profile?.signature || ""}
         </p>
         
         <div className="flex flex-wrap gap-4">
-          <a
-            href="https://github.com/qiushui7"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            aria-label="GitHub"
-          >
-            <Github className="h-5 w-5" />
-          </a>
-          <a
-            href="https://www.linkedin.com/in/%E6%85%A7%E6%B6%9B-%E5%88%98-181771337/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            aria-label="LinkedIn"
-          >
-            <Linkedin className="h-5 w-5" />
-          </a>
-          <a
-            href="mailto:qiushui030716@gmail.com"
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
-            aria-label="邮箱"
-          >
-            <Mail className="h-5 w-5" />
-          </a>
+          {profile?.githubUrl && (
+            <a
+              href={profile.githubUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              aria-label="GitHub"
+            >
+              <Github className="h-5 w-5" />
+            </a>
+          )}
+          
+          {profile?.linkedinUrl && (
+            <a
+              href={profile.linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              aria-label="LinkedIn"
+            >
+              <Linkedin className="h-5 w-5" />
+            </a>
+          )}
+          
+          {profile?.contactEmail && (
+            <a
+              href={`mailto:${profile.contactEmail}`}
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-input bg-background text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+              aria-label="邮箱"
+            >
+              <Mail className="h-5 w-5" />
+            </a>
+          )}
         </div>
       </section>
 

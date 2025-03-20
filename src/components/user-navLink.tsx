@@ -3,7 +3,7 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-
+import { useMemo } from 'react'
 
 export default function UserNavLink({ href, label }: { href: string, label: string }) {
     const pathname = usePathname();
@@ -17,8 +17,8 @@ export default function UserNavLink({ href, label }: { href: string, label: stri
     if (!userId) {
       return null;
     }
-    const userHref = `/${userId}/${href}`
-    const isActive = pathname === userHref
+    const userHref = `/${userId}${href}`
+    const isActive = useMemo(() => pathname === userHref, [pathname, userHref])
 
     return (
         <Link href={userHref} className={cn(

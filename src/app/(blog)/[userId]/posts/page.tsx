@@ -36,8 +36,10 @@ async function getUserPosts(userId: string): Promise<PostWithTags[]> {
   return response.json();
 }
 
-export const generateMetadata = async ({ params }: { params: { userId: string } }) => {
-  const user = await getUserById(params.userId);
+export const generateMetadata = async ({ params }: { params: Promise<{ userId: string }> }) => {
+  const actualParams = await params;
+  const userId = actualParams.userId;
+  const user = await getUserById(userId);
   
   if (!user) {
     return {
@@ -55,9 +57,10 @@ export const generateMetadata = async ({ params }: { params: { userId: string } 
 export default async function UserPostsPage({
   params
 }: {
-  params: { userId: string }
+  params: Promise<{ userId: string }>
 }) {
-  const userId = params.userId;
+  const actualParams = await params;  
+  const userId = actualParams.userId;
   
   // 获取用户信息
   const user = await getUserById(userId);
