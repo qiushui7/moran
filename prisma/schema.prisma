@@ -47,6 +47,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   posts         Post[]
+  tags          Tag[]     // 用户拥有的标签
 }
 
 model VerificationToken {
@@ -69,11 +70,18 @@ model Post {
   userId    String?
   user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   tags      Tag[]
+
+  @@unique([slug, userId]) // 每个用户的文章slug唯一
 }
 
 model Tag {
-  id    String @id @default(cuid())
-  name  String @unique
-  slug  String @unique
-  posts Post[]
+  id     String @id @default(cuid())
+  name   String
+  slug   String
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  posts  Post[]
+
+  @@unique([slug, userId]) // 每个用户的标签slug唯一
+  @@unique([name, userId]) // 每个用户的标签名称唯一
 } 

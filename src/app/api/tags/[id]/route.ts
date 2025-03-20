@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { verifySession } from "@/lib/auth-utils";
 
 interface Params {
   params: {
@@ -11,23 +11,21 @@ interface Params {
 // 获取单个标签
 export async function GET(request: NextRequest, { params }: Params) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
-
-    const userId = session.user.id;
+    
+    const { userId } = session;
     const id = params.id;
 
     // 查找该用户的指定标签
     const tag = await prisma.tag.findFirst({
       where: {
         id,
-        posts: {
-          some: {
-            userId: userId
-          }
-        }
+        userId: userId
       },
       include: {
         posts: {
@@ -62,12 +60,14 @@ export async function GET(request: NextRequest, { params }: Params) {
 // 更新标签
 export async function PUT(request: NextRequest, { params }: Params) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
-
-    const userId = session.user.id;
+    
+    const { userId } = session;
     const id = params.id;
     const { name, slug } = await request.json();
 
@@ -83,11 +83,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const existingTag = await prisma.tag.findFirst({
       where: {
         id,
-        posts: {
-          some: {
-            userId: userId
-          }
-        }
+        userId: userId
       }
     });
 
@@ -99,12 +95,16 @@ export async function PUT(request: NextRequest, { params }: Params) {
     const duplicateTag = await prisma.tag.findFirst({
       where: {
         id: { not: id },
-        OR: [{ name }, { slug }],
-        posts: {
-          some: {
-            userId: userId
+        OR: [
+          { 
+            name,
+            userId
+          }, 
+          { 
+            slug,
+            userId
           }
-        }
+        ]
       }
     });
 
@@ -134,60 +134,26 @@ export async function PUT(request: NextRequest, { params }: Params) {
 // 删除标签
 export async function DELETE(request: NextRequest, { params }: Params) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
-
-    const userId = session.user.id;
+    
+    const { userId } = session;
     const id = params.id;
 
     // 检查标签是否存在且属于当前用户
     const existingTag = await prisma.tag.findFirst({
       where: {
         id,
-        posts: {
-          some: {
-            userId: userId
-          }
-        }
-      },
-      include: {
-        posts: {
-          where: {
-            userId: userId
-          },
-          select: {
-            id: true
-          }
-        }
+        userId: userId
       }
     });
 
     if (!existingTag) {
       return NextResponse.json({ error: "标签不存在或无权删除" }, { status: 404 });
-    }
-
-    // 查询是否有只关联了这个标签的初始化文章
-    // 这些是为标签创建的占位文章，应该随标签一起删除
-    if (existingTag.posts.length === 1) {
-      const post = await prisma.post.findUnique({
-        where: {
-          id: existingTag.posts[0].id
-        },
-        include: {
-          tags: true
-        }
-      });
-
-      if (post && post.tags.length === 1 && post.tags[0].id === id && post.slug.endsWith('-init')) {
-        // 删除初始化文章
-        await prisma.post.delete({
-          where: {
-            id: post.id
-          }
-        });
-      }
     }
 
     // 删除标签

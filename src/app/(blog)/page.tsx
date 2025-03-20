@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import type { Post, Tag } from "@prisma/client";
-import { TypeWriter } from "@/components/type-writer";
-import { Github, Twitter, Linkedin, Mail } from "lucide-react";
+import { Github, Linkedin, Mail } from "lucide-react";
 
 type PostWithTags = Post & { tags: Tag[] };
 

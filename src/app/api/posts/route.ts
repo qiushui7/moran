@@ -1,16 +1,18 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/auth";
+import { verifySession } from "@/lib/auth-utils";
 
 // 获取所有文章
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
-
-    const userId = session.user.id;
+    
+    const { userId } = session;
     const { searchParams } = new URL(request.url);
     const tagId = searchParams.get("tagId");
 
@@ -52,7 +54,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("获取文章列表失败:", error);
     return NextResponse.json(
-      { error: "获取文章列表失败" },
+      { error: "获取文章列表失败", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -61,13 +63,24 @@ export async function GET(request: NextRequest) {
 // 创建新文章
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
-
-    const userId = session.user.id;
-    const data = await request.json();
+    
+    const { userId } = session;
+    
+    let data;
+    try {
+      data = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: "无效的JSON数据", details: e instanceof Error ? e.message : String(e) },
+        { status: 400 }
+      );
+    }
 
     // 验证必要字段
     if (!data.title || !data.slug || !data.content) {
@@ -77,9 +90,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 检查别名是否已存在
-    const existingPost = await prisma.post.findUnique({
-      where: { slug: data.slug },
+    // 检查别名是否已存在（对当前用户来说）
+    const existingPost = await prisma.post.findFirst({
+      where: { 
+        slug: data.slug,
+        userId: userId
+      }
     });
 
     if (existingPost) {
@@ -99,11 +115,7 @@ export async function POST(request: NextRequest) {
           id: {
             in: tagIds
           },
-          posts: {
-            some: {
-              userId: userId
-            }
-          }
+          userId: userId
         }
       });
       
@@ -138,7 +150,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("创建文章失败:", error);
     return NextResponse.json(
-      { error: "创建文章失败" },
+      { error: "创建文章失败", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

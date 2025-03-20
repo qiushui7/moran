@@ -11,14 +11,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google
   ],
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id;
+        token.role = user.role || "user";
+      }
+      
       if (account) {
         token.accessToken = account.access_token;
       }
+      
       return token;
     },
-    async session({ session, token, user }) {
-      session.user.id = token.id as string;
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as string;
+        session.user.accessToken = token.accessToken as string;
+      }
+      
       return session;
     }
   },

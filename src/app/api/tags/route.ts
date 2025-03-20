@@ -1,37 +1,48 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { APP_CONSTANTS } from "@/lib/utils";
-import { auth } from "@/auth";
+import { verifySession } from "@/lib/auth-utils";
 
 // 获取所有标签
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
-
-    const userId = session.user.id;
     
-    // 获取该用户的所有标签
+    const { userId } = session;
+    
+    // 获取当前用户的所有标签
     const tags = await prisma.tag.findMany({
       where: {
-        posts: {
-          some: {
-            userId: userId
-          }
-        }
+        userId: userId
       },
       orderBy: {
         name: "asc",
       },
+      include: {
+        _count: {
+          select: { posts: true }
+        }
+      }
     });
 
-    return NextResponse.json(tags);
+    // 格式化返回数据，添加文章计数
+    const formattedTags = tags.map(tag => ({
+      id: tag.id,
+      name: tag.name,
+      slug: tag.slug,
+      count: tag._count.posts
+    }));
+
+    return NextResponse.json(formattedTags);
   } catch (error) {
     console.error("获取标签失败:", error);
     return NextResponse.json(
-      { error: "获取标签失败" },
+      { error: "获取标签失败", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
@@ -40,13 +51,26 @@ export async function GET(request: NextRequest) {
 // 创建新标签
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user) {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
-
-    const userId = session.user.id;
-    const { name, slug } = await request.json();
+    
+    const { userId } = session;
+    
+    let requestData;
+    try {
+      requestData = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: "无效的JSON数据", details: e instanceof Error ? e.message : String(e) },
+        { status: 400 }
+      );
+    }
+    
+    const { name, slug } = requestData;
 
     // 验证必填字段
     if (!name || !slug) {
@@ -59,11 +83,7 @@ export async function POST(request: NextRequest) {
     // 检查用户拥有的标签数量是否达到上限
     const userTagsCount = await prisma.tag.count({
       where: {
-        posts: {
-          some: {
-            userId: userId
-          }
-        }
+        userId: userId
       }
     });
 
@@ -78,14 +98,15 @@ export async function POST(request: NextRequest) {
     const existingTag = await prisma.tag.findFirst({
       where: {
         OR: [
-          { name },
-          { slug }
-        ],
-        posts: {
-          some: {
-            userId: userId
+          {
+            name,
+            userId
+          },
+          {
+            slug,
+            userId
           }
-        }
+        ]
       }
     });
 
@@ -96,36 +117,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 创建新标签，并关联到一个空白文章
-    const dummyPost = await prisma.post.create({
-      data: {
-        title: `${name} 标签初始化`,
-        slug: `${slug}-init`,
-        content: `这是为 ${name} 标签创建的初始化文章`,
-        excerpt: `${name} 标签初始化文章`,
-        published: false,
-        userId: userId
-      }
-    });
+    console.log("尝试创建标签:", { name, slug, userId });
 
-    // 创建标签并关联到空白文章
+    // 创建新标签
     const newTag = await prisma.tag.create({
       data: {
         name,
         slug,
-        posts: {
-          connect: {
-            id: dummyPost.id
-          }
-        }
-      },
+        userId
+      }
     });
 
+    console.log("标签创建成功:", newTag);
     return NextResponse.json(newTag);
   } catch (error) {
     console.error("创建标签失败:", error);
     return NextResponse.json(
-      { error: "创建标签失败" },
+      { 
+        error: "创建标签失败，请确保已登录并检查标签数据是否有效", 
+        details: error instanceof Error ? error.message : String(error) 
+      },
       { status: 500 }
     );
   }

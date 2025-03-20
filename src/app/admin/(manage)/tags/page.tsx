@@ -52,14 +52,25 @@ export default function TagsManagement() {
     setIsLoading(true);
     try {
       const res = await fetch('/api/tags');
+      
       if (!res.ok) {
-        throw new Error('获取标签失败');
+        const data = await res.json();
+        console.error('获取标签失败:', data);
+        
+        if (data.error === "未授权访问" || data.error === "未授权访问：用户ID缺失") {
+          toast.error("登录状态已过期，请重新登录");
+        } else {
+          toast.error(data.error || '获取标签失败');
+        }
+        
+        return;
       }
+      
       const data = await res.json();
       setTags(data);
     } catch (error) {
       console.error('获取标签失败:', error);
-      toast.error('获取标签失败');
+      toast.error('获取标签失败，请刷新页面重试');
     } finally {
       setIsLoading(false);
     }
@@ -93,12 +104,27 @@ export default function TagsManagement() {
       const data = await res.json();
       
       if (!res.ok) {
-        setError(data.error || '添加标签失败');
+        console.error('添加标签失败:', data);
+        
+        // 显示详细错误信息（如果有）
+        const errorMsg = data.error || '添加标签失败';
+        const detailsMsg = data.details ? `\n详细信息: ${data.details}` : '';
+        setError(`${errorMsg}${detailsMsg}`);
+        
+        if (data.error === "未授权访问" || data.error === "未授权访问：用户ID缺失") {
+          toast.error("登录状态已过期，请重新登录");
+        }
+        
         return;
       }
       
       // 添加新标签到列表
-      setTags([...tags, { ...data, count: 0 }]);
+      setTags([...tags, { 
+        id: data.id,
+        name: data.name,
+        slug: data.slug,
+        count: 0 
+      }]);
       setNewTag({ name: "", slug: "" });
       toast.success('标签创建成功');
       
@@ -107,7 +133,12 @@ export default function TagsManagement() {
       window.dispatchEvent(refreshTagsEvent);
     } catch (error) {
       console.error('添加标签失败:', error);
-      setError('添加标签失败');
+      const errorMessage = typeof error === 'object' && error !== null 
+        ? (error as any).message || JSON.stringify(error) 
+        : '添加标签失败';
+      
+      setError(`添加标签失败: ${errorMessage}`);
+      toast.error('添加标签失败，请稍后重试');
     }
   };
 
@@ -252,7 +283,7 @@ export default function TagsManagement() {
         <h3 className="mb-4 text-lg font-medium">添加新标签</h3>
         
         {error && (
-          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-500">
+          <div className="mb-4 rounded-md bg-red-50 p-3 text-sm text-red-500 whitespace-pre-line">
             {error}
           </div>
         )}
