@@ -4,7 +4,7 @@ import type { Tag } from "@prisma/client";
 type TagWithCount = Tag & { _count: { posts: number } };
 
 export const metadata = {
-  title: "标签 - 墨韵",
+  title: "标签 - 墨染",
   description: "浏览博客中的所有标签",
 };
 

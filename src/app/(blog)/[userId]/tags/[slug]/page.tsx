@@ -40,13 +40,13 @@ export async function generateMetadata({ params }: TagPageParams) {
 
   if (!tag) {
     return {
-      title: "标签不存在 - 墨韵",
+      title: "标签不存在 - 墨染",
       description: "找不到请求的标签",
     };
   }
 
   return {
-    title: `${tag.name} - 标签 - 墨韵`,
+    title: `${tag.name} - 标签 - 墨染`,
     description: `浏览与"${tag.name}"相关的所有文章`,
   };
 }

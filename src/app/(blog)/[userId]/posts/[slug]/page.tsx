@@ -51,13 +51,13 @@ export async function generateMetadata({ params }: PostPageParams) {
 
   if (!post) {
     return {
-      title: "文章不存在 - 墨韵",
+      title: "文章不存在 - 墨染",
       description: "找不到请求的文章",
     };
   }
 
   return {
-    title: `${post.title} - 墨韵`,
+    title: `${post.title} - 墨染`,
     description: post.excerpt || "阅读文章详情",
   };
 }

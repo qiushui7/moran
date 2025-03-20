@@ -41,13 +41,13 @@ export const generateMetadata = async ({ params }: { params: { userId: string } 
   
   if (!user) {
     return {
-      title: "用户不存在 - 墨韵",
+      title: "用户不存在 - 墨染",
       description: "找不到请求的用户"
     };
   }
   
   return {
-    title: `${user.name || '用户'}的文章列表 - 墨韵`,
+    title: `${user.name || '用户'}的文章列表 - 墨染`,
     description: `浏览${user.name || '用户'}的所有博客文章`,
   };
 };

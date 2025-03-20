@@ -8,7 +8,7 @@ import { NextAuthProvider } from "../components/auth/next-auth-provider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "墨韵",
+  title: "墨染",
   description: "一个使用Next.js、Tailwind CSS构建的博客系统",
 };
 
