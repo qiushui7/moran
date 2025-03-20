@@ -1,8 +1,6 @@
 import { LoginButton } from "@/components/auth/login-button";
-import { signinWithEmail } from "../action";
 
 export default function AdminLogin() {
-  signinWithEmail("997179306@qq.com");
   return (
     <div className="flex h-[calc(100vh-180px)] items-center justify-center">
       <div className="w-full max-w-md space-y-8 rounded-lg border p-8 shadow-md">

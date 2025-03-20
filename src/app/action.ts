@@ -6,7 +6,7 @@ export const signInWithGoogle = async () => {
 }
 
 export const signinWithGitHub = async () => {
-    await signIn("github");
+    await signIn("github",{ redirectTo: "/admin/posts" });
 }
 
 export const signinWithEmail = async (email: string) => {
