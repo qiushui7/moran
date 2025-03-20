@@ -1,20 +1,53 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import type { Post, Tag, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import type { Post, Tag } from "@prisma/client";
 
 type PostWithTags = Post & { tags: Tag[] };
 
 interface PostPageParams {
   params: {
+    userId: string;
     slug: string;
   };
 }
 
-export async function generateMetadata({ params }: PostPageParams) {
-  const post = await prisma.post.findUnique({
-    where: { slug: params.slug },
+// 获取用户信息
+async function getUserById(userId: string): Promise<User | null> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    
+    return user;
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    return null;
+  }
+}
+
+// 获取单篇文章
+async function getPost(userId: string, slug: string): Promise<PostWithTags | null> {
+  // 构建API URL
+  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public/posts/${slug}?userId=${userId}`;
+  
+  const response = await fetch(apiUrl, { 
+    next: { revalidate: 60 } // 每60秒重新验证数据
   });
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    console.error(`Failed to fetch post: ${slug}`);
+    return null;
+  }
+  
+  return response.json();
+}
+
+export async function generateMetadata({ params }: PostPageParams) {
+  const post = await getPost(params.userId, params.slug);
 
   if (!post) {
     return {
@@ -30,10 +63,16 @@ export async function generateMetadata({ params }: PostPageParams) {
 }
 
 export default async function PostPage({ params }: PostPageParams) {
-  const post = await prisma.post.findUnique({
-    where: { slug: params.slug },
-    include: { tags: true },
-  }) as PostWithTags | null;
+  const { userId, slug } = params;
+  
+  // 获取用户信息
+  const user = await getUserById(userId);
+  if (!user) {
+    notFound();
+  }
+  
+  // 获取文章
+  const post = await getPost(userId, slug);
 
   if (!post || !post.published) {
     notFound();
@@ -44,7 +83,7 @@ export default async function PostPage({ params }: PostPageParams) {
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">{post.title}</h1>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <time dateTime={post.createdAt.toISOString()}>
+          <time dateTime={new Date(post.createdAt).toISOString()}>
             {new Date(post.createdAt).toLocaleDateString("zh-CN", {
               year: "numeric",
               month: "long",
@@ -58,7 +97,7 @@ export default async function PostPage({ params }: PostPageParams) {
                 {post.tags.map((tag, index) => (
                   <span key={tag.id}>
                     <Link
-                      href={`/tags/${tag.slug}`}
+                      href={`/${userId}/tags/${tag.slug}`}
                       className="hover:text-foreground transition-colors"
                     >
                       {tag.name}
@@ -80,7 +119,7 @@ export default async function PostPage({ params }: PostPageParams) {
 
       <div className="flex justify-between pt-4 border-t">
         <Link 
-          href="/posts" 
+          href={`/${userId}/posts`}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← 返回文章列表

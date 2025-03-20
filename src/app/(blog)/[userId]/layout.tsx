@@ -1,4 +1,3 @@
-import { NextAuthProvider } from "@/components/auth/next-auth-provider";
 import Header from "@/components/header";
 
 export default function BlogLayout({

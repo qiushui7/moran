@@ -1,27 +1,82 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
-import type { Post, Tag } from "@prisma/client";
+import { notFound } from "next/navigation";
 import { Github, Linkedin, Mail } from "lucide-react";
+import type { Post, Tag, User } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 type PostWithTags = Post & { tags: Tag[] };
 
-export default async function Home() {
-  const posts = await prisma.post.findMany({
-    where: { published: true },
-    orderBy: { createdAt: "desc" },
-    take: 3,
-    include: { tags: true },
-  }) as PostWithTags[];
+// 获取用户信息
+async function getUserById(userId: string): Promise<User | null> {
+  try {
+    const user = await prisma.user.findUnique({
+      where: { id: userId }
+    });
+    
+    return user;
+  } catch (error) {
+    console.error('获取用户信息失败:', error);
+    return null;
+  }
+}
+
+// 获取用户最新文章
+async function getUserLatestPosts(userId: string): Promise<PostWithTags[]> {
+  // 构建API URL
+  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public/posts?limit=3&userId=${userId}`;
+  
+  const response = await fetch(apiUrl, { 
+    next: { revalidate: 60 } // 每60秒重新验证数据
+  });
+  
+  if (!response.ok) {
+    console.error('Failed to fetch user posts');
+    return [];
+  }
+  
+  return response.json();
+}
+
+export default async function UserHomePage({
+  params
+}: {
+  params: { userId: string }
+}) {
+  const userId = params.userId;
+  const user = await getUserById(userId);
+  
+  // 如果用户不存在，返回404
+  if (!user) {
+    notFound();
+  }
+  
+  const posts = await getUserLatestPosts(userId);
 
   return (
     <div className="space-y-12">
       <section className="space-y-6">
-        <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl min-h-[3rem] sm:min-h-[3.5rem] md:min-h-[4rem]">
-          欢迎来到我的博客
-        </h1>
+        <div className="flex items-center gap-4">
+          {user.image ? (
+            <img 
+              src={user.image} 
+              alt={user.name || '用户头像'} 
+              className="w-16 h-16 rounded-full"
+            />
+          ) : (
+            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-semibold">
+              {user.name?.charAt(0) || '?'}
+            </div>
+          )}
+          <div>
+            <h1 className="text-3xl font-bold tracking-tighter">{user.name || '匿名用户'}的博客</h1>
+            <p className="text-muted-foreground">{user.email}</p>
+          </div>
+        </div>
+        
         <p className="text-muted-foreground max-w-[600px]">
         风可以吹跑一片白纸，但是不能吹跑一只蝴蝶，因为生命的力量在于不顺从，我希望你们能勇敢的打破别人给你的枷锁，因为生活中的对和错都是人为决定的。
         </p>
+        
         <div className="flex flex-wrap gap-4">
           <a
             href="https://github.com/qiushui7"
@@ -54,7 +109,7 @@ export default async function Home() {
       <section className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold tracking-tight">最新文章</h2>
-          <Link href="/posts" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+          <Link href={`/${userId}/posts`} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             查看全部
           </Link>
         </div>
@@ -63,14 +118,14 @@ export default async function Home() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((post: PostWithTags) => (
               <article key={post.id} className="group space-y-2">
-                <Link href={`/posts/${post.slug}`}>
+                <Link href={`/${userId}/posts/${post.slug}`}>
                   <h3 className="text-lg font-medium leading-tight group-hover:underline">{post.title}</h3>
                 </Link>
                 {post.excerpt && (
                   <p className="text-sm text-muted-foreground">{post.excerpt}</p>
                 )}
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <time dateTime={post.createdAt.toISOString()}>
+                  <time dateTime={new Date(post.createdAt).toISOString()}>
                     {new Date(post.createdAt).toLocaleDateString("zh-CN", {
                       year: "numeric",
                       month: "long",
@@ -84,7 +139,7 @@ export default async function Home() {
                         {post.tags.map((tag: Tag, index: number) => (
                           <span key={tag.id}>
                             <Link
-                              href={`/tags/${tag.slug}`}
+                              href={`/${userId}/tags/${tag.slug}`}
                               className="hover:text-foreground transition-colors"
                             >
                               {tag.name}
@@ -100,7 +155,7 @@ export default async function Home() {
             ))}
           </div>
         ) : (
-          <p className="text-muted-foreground">暂无文章发布。</p>
+          <p className="text-muted-foreground">该用户暂无文章发布。</p>
         )}
       </section>
     </div>

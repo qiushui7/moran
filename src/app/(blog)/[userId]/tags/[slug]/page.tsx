@@ -1,20 +1,42 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/prisma";
 import type { Post, Tag } from "@prisma/client";
 
 type PostWithTags = Post & { tags: Tag[] };
+type TagWithPosts = Tag & { 
+  posts: PostWithTags[];
+  _count: { posts: number };
+};
 
 interface TagPageParams {
   params: {
+    userId: string;
     slug: string;
   };
 }
 
-export async function generateMetadata({ params }: TagPageParams) {
-  const tag = await prisma.tag.findUnique({
-    where: { slug: params.slug },
+// 获取单个标签及其文章
+async function getTag(userId: string, slug: string): Promise<TagWithPosts | null> {
+  // 构建API URL，使用userId过滤
+  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public/tags/${slug}?userId=${userId}`;
+  
+  const response = await fetch(apiUrl, { 
+    next: { revalidate: 60 } // 每60秒重新验证数据
   });
+  
+  if (!response.ok) {
+    if (response.status === 404) {
+      return null;
+    }
+    console.error(`Failed to fetch tag: ${slug}`);
+    return null;
+  }
+  
+  return response.json();
+}
+
+export async function generateMetadata({ params }: TagPageParams) {
+  const tag = await getTag(params.userId, params.slug);
 
   if (!tag) {
     return {
@@ -30,16 +52,8 @@ export async function generateMetadata({ params }: TagPageParams) {
 }
 
 export default async function TagPage({ params }: TagPageParams) {
-  const tag = await prisma.tag.findUnique({
-    where: { slug: params.slug },
-    include: {
-      posts: {
-        where: { published: true },
-        orderBy: { createdAt: "desc" },
-        include: { tags: true },
-      },
-    },
-  });
+  const { userId, slug } = params;
+  const tag = await getTag(userId, slug);
 
   if (!tag) {
     notFound();
@@ -60,14 +74,14 @@ export default async function TagPage({ params }: TagPageParams) {
         <div className="space-y-10">
           {tag.posts.map((post: PostWithTags) => (
             <article key={post.id} className="space-y-2">
-              <Link href={`/posts/${post.slug}`}>
+              <Link href={`/${userId}/posts/${post.slug}`}>
                 <h2 className="text-xl font-semibold leading-tight hover:underline">{post.title}</h2>
               </Link>
               {post.excerpt && (
                 <p className="text-muted-foreground">{post.excerpt}</p>
               )}
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <time dateTime={post.createdAt.toISOString()}>
+                <time dateTime={new Date(post.createdAt).toISOString()}>
                   {new Date(post.createdAt).toLocaleDateString("zh-CN", {
                     year: "numeric",
                     month: "long",
@@ -81,7 +95,7 @@ export default async function TagPage({ params }: TagPageParams) {
                       {post.tags.map((tag, index) => (
                         <span key={tag.id}>
                           <Link
-                            href={`/tags/${tag.slug}`}
+                            href={`/${userId}/tags/${tag.slug}`}
                             className="hover:text-foreground transition-colors"
                           >
                             {tag.name}
@@ -102,7 +116,7 @@ export default async function TagPage({ params }: TagPageParams) {
 
       <div className="flex justify-between pt-4 border-t">
         <Link 
-          href="/tags" 
+          href={`/${userId}/tags`}
           className="text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           ← 返回标签列表

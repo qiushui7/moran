@@ -1,23 +1,37 @@
 import Link from "next/link";
-import { prisma } from "@/lib/prisma";
 import type { Tag } from "@prisma/client";
+
+type TagWithCount = Tag & { _count: { posts: number } };
 
 export const metadata = {
   title: "标签 - 墨韵",
   description: "浏览博客中的所有标签",
 };
 
-export default async function TagsPage() {
-  const tags = await prisma.tag.findMany({
-    include: {
-      _count: {
-        select: { posts: true },
-      },
-    },
+// 获取所有标签
+async function getAllTags(userId: string): Promise<TagWithCount[]> {
+  // 构建API URL，使用userId过滤
+  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public/tags?userId=${userId}`;
+  
+  const response = await fetch(apiUrl, { 
+    next: { revalidate: 60 } // 每60秒重新验证数据
   });
+  
+  if (!response.ok) {
+    console.error('Failed to fetch tags');
+    return [];
+  }
+  
+  return response.json();
+}
 
-  // 根据文章数量排序
-  tags.sort((a, b) => b._count.posts - a._count.posts);
+export default async function TagsPage({
+  params
+}: {
+  params: { userId: string }
+}) {
+  const userId = params.userId;
+  const tags = await getAllTags(userId);
 
   return (
     <div className="space-y-6">
@@ -31,7 +45,7 @@ export default async function TagsPage() {
           {tags.map((tag) => (
             <Link
               key={tag.id}
-              href={`/tags/${tag.slug}`}
+              href={`/${userId}/tags/${tag.slug}`}
               className="px-3 py-1 text-sm rounded-md border bg-background hover:bg-accent transition-colors"
             >
               {tag.name} ({tag._count.posts})
