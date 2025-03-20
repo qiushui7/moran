@@ -5,7 +5,7 @@ export default function AdminLogin() {
     <div className="flex h-[calc(100vh-180px)] items-center justify-center">
       <div className="w-full max-w-md space-y-8 rounded-lg border p-8 shadow-md">
         <div className="text-center">
-          <h2 className="text-2xl font-bold">墨韵</h2>
+          <h2 className="text-2xl font-bold">墨染</h2>
           <p className="text-sm text-muted-foreground">登录以管理您的博客内容</p>
         </div>
 

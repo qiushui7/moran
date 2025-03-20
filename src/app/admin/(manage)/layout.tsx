@@ -170,7 +170,7 @@ export default function AdminLayout({
             <header className="border-b px-4 py-3">
               <div className="flex items-center justify-between">
                 <Link href="/" className="text-lg font-bold">
-                  墨韵
+                  墨染
                 </Link>
                 <div className="flex items-center gap-2">
                   <ThemeToggle />
