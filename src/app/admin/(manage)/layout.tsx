@@ -4,8 +4,6 @@ import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { redirect, usePathname } from "next/navigation";
 import { 
-  TagIcon, 
-  LogOutIcon,
   SearchIcon,
   PlusIcon,
   FileTextIcon,
@@ -14,6 +12,8 @@ import {
 import { signOut } from "next-auth/react";
 import { formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { BottomToolbar } from "@/components/ui/bottom-toolbar";
 
 // 类型定义
 type Tag = {
@@ -172,24 +172,27 @@ export default function AdminLayout({
                 <Link href="/" className="text-lg font-bold">
                   墨韵
                 </Link>
-                {session?.user && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground hidden sm:inline-block">
-                      {session.user.name || session.user.email}
-                    </span>
-                    {session.user.image ? (
-                      <img 
-                        src={session.user.image} 
-                        alt="User avatar" 
-                        className="h-8 w-8 rounded-full border"
-                      />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        {session.user.name?.charAt(0) || session.user.email?.charAt(0) || '?'}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  <ThemeToggle />
+                  {session?.user && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground hidden sm:inline-block">
+                        {session.user.name || session.user.email}
+                      </span>
+                      {session.user.image ? (
+                        <img 
+                          src={session.user.image} 
+                          alt="User avatar" 
+                          className="h-8 w-8 rounded-full border"
+                        />
+                      ) : (
+                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                          {session.user.name?.charAt(0) || session.user.email?.charAt(0) || '?'}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </header>
             <div className="p-4">
@@ -287,28 +290,12 @@ export default function AdminLayout({
               )}
             </div>
 
-            {/* 导航菜单 */}
-            <nav className="px-2 py-4 border-t">
-              <Link
-                href="/admin/tags"
-                className={`flex items-center gap-2 rounded-md p-2 text-sm ${
-                  pathname === "/admin/tags" ? "bg-primary/10 text-primary" : "hover:bg-accent"
-                }`}
-              >
-                <TagIcon className="h-4 w-4" />
-                <span>标签管理</span>
-              </Link>
-            </nav>
-
-            {/* 登出按钮 */}
-            <div className="border-t p-2">
-              <button
-                onClick={handleLogout}
-                className="flex w-full items-center gap-2 rounded-md p-2 text-sm text-red-500 hover:bg-red-50 hover:text-red-600 cursor-pointer transition-colors"
-              >
-                <LogOutIcon className="h-4 w-4" />
-                <span>退出登录</span>
-              </button>
+            {/* 底部工具栏 */}
+            <div className="px-4 py-2 border-t flex justify-center">
+              <BottomToolbar
+                onLogout={handleLogout}
+                activeItem={pathname === "/admin/tags" ? "tags" : ""}
+              />
             </div>
           </div>
         </aside>
