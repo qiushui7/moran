@@ -71,6 +71,57 @@ npm start
 
 ```
 
+## Docker 部署
+
+本项目支持使用 Docker 进行容器化部署，便于在各种环境中快速启动应用。
+
+### Docker 相关命令
+
+#### 构建并启动容器
+
+```bash
+# 构建并在后台启动所有服务
+docker-compose up -d
+
+# 仅构建镜像而不启动容器
+docker-compose build
+
+# 启动特定服务
+docker-compose up -d app
+docker-compose up -d db
+```
+
+#### 查看和管理容器
+
+```bash
+# 查看运行中的容器
+docker-compose ps
+
+# 查看容器日志
+docker-compose logs -f app
+
+# 进入容器内部
+docker-compose exec app sh
+docker-compose exec db psql -U postgres -d qiushui_blog
+```
+
+#### 停止和删除容器
+
+```bash
+# 停止所有服务
+docker-compose stop
+
+# 停止并删除所有容器、网络
+docker-compose down
+
+# 停止并删除所有容器、网络和卷（会删除数据库数据）
+docker-compose down -v
+```
+
+### 注意事项
+
+确保本地 PostgreSQL 没有占用 5432 端口，否则需要修改 `docker-compose.yml` 中的端口映射为 `5433:5432`
+
 ## 项目结构
 
 ```

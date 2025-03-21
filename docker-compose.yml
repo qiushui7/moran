@@ -1,0 +1,37 @@
+services:
+  # Next.js 应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: always
+    env_file:
+      - ./.env
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    networks:
+      - qiushui-network
+
+  # PostgreSQL 数据库
+  db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=123456
+      - POSTGRES_DB=qiushui_blog
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - qiushui-network
+
+networks:
+  qiushui-network:
+    driver: bridge
+
+volumes:
+  postgres-data: 
