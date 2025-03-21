@@ -13,13 +13,13 @@ export async function GET(request: NextRequest, { params }: Params) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
-    
+    const actualParams = await params;
     if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
     
     const { userId } = session;
-    const id = params.id;
+    const id = actualParams.id;
     
     // 查找该用户的指定文章
     const post = await prisma.post.findFirst({
@@ -54,13 +54,14 @@ export async function PUT(request: NextRequest, { params }: Params) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
+    const actualParams = await params;
     
     if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
     
     const { userId } = session;
-    const id = params.id;
+    const id = actualParams.id;
     
     // 检查文章是否存在且属于当前用户
     const post = await prisma.post.findFirst({
@@ -86,13 +87,13 @@ export async function PUT(request: NextRequest, { params }: Params) {
         { status: 400 }
       );
     }
-    
+    console.log(data);
     const { title, slug, content, excerpt, published, tags } = data;
     
     // 验证必填字段
-    if (!title || !slug || !content) {
+    if (!title) {
       return NextResponse.json(
-        { error: "标题、URL别名和内容为必填项" },
+        { error: "标题为必填项" },
         { status: 400 }
       );
     }
@@ -186,13 +187,14 @@ export async function DELETE(request: NextRequest, { params }: Params) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
+    const actualParams = await params;
     
     if (!session) {
       return NextResponse.json({ error: "未授权访问" }, { status: 401 });
     }
     
     const { userId } = session;
-    const id = params.id;
+    const id = actualParams.id;
     
     // 检查文章是否存在且属于当前用户
     const post = await prisma.post.findFirst({
@@ -221,6 +223,71 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     console.error("删除文章失败:", error);
     return NextResponse.json(
       { error: "删除文章失败", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
+  }
+}
+
+// 部分更新文章（仅内容）
+export async function PATCH(request: NextRequest, { params }: Params) {
+  try {
+    // 验证用户会话并获取userId
+    const session = await verifySession();
+    
+    if (!session) {
+      return NextResponse.json({ error: "未授权访问" }, { status: 401 });
+    }
+    
+    const { userId } = session;
+    const actualParams = await params;
+    const id = actualParams.id;
+    
+    // 检查文章是否存在且属于当前用户
+    const post = await prisma.post.findFirst({
+      where: { 
+        id,
+        userId // 确保只能更新自己的文章
+      }
+    });
+    
+    if (!post) {
+      return NextResponse.json(
+        { error: "文章不存在或无权修改" },
+        { status: 404 }
+      );
+    }
+    
+    let data;
+    try {
+      data = await request.json();
+    } catch (e) {
+      return NextResponse.json(
+        { error: "无效的JSON数据" },
+        { status: 400 }
+      );
+    }
+    
+    // 只允许更新内容字段
+    const { content } = data;
+    
+    if (content === undefined) {
+      return NextResponse.json(
+        { error: "缺少更新内容" },
+        { status: 400 }
+      );
+    }
+    
+    // 更新文章内容
+    const updatedPost = await prisma.post.update({
+      where: { id },
+      data: { content }
+    });
+    
+    return NextResponse.json(updatedPost);
+  } catch (error) {
+    console.error("更新文章内容失败:", error);
+    return NextResponse.json(
+      { error: "更新文章内容失败", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }

@@ -2,6 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Post, Tag, User } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import dynamic from "next/dynamic";
+
+// 动态导入LexicalViewer组件以避免SSR问题
+const LexicalViewer = dynamic(
+  () => import("@/components/editor/LexicalViewer"),
+  { ssr: true }
+);
 
 type PostWithTags = Post & { tags: Tag[] };
 
@@ -47,7 +54,8 @@ async function getPost(userId: string, slug: string): Promise<PostWithTags | nul
 }
 
 export async function generateMetadata({ params }: PostPageParams) {
-  const post = await getPost(params.userId, params.slug);
+  const { userId, slug } = await params;
+  const post = await getPost(userId, slug);
 
   if (!post) {
     return {
@@ -63,7 +71,7 @@ export async function generateMetadata({ params }: PostPageParams) {
 }
 
 export default async function PostPage({ params }: PostPageParams) {
-  const { userId, slug } = params;
+  const { userId, slug } = await params;
   
   // 获取用户信息
   const user = await getUserById(userId);
@@ -73,7 +81,7 @@ export default async function PostPage({ params }: PostPageParams) {
   
   // 获取文章
   const post = await getPost(userId, slug);
-
+  console.log('post',post)
   if (!post || !post.published) {
     notFound();
   }
@@ -112,9 +120,7 @@ export default async function PostPage({ params }: PostPageParams) {
       </div>
 
       <div className="prose dark:prose-invert max-w-none">
-        {post.content.split('\n').map((paragraph, index) => (
-          <p key={index}>{paragraph}</p>
-        ))}
+        <LexicalViewer content={post.content} />
       </div>
 
       <div className="flex justify-between pt-4 border-t">

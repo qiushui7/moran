@@ -14,7 +14,6 @@ const NAV_ITEMS = [
 export default async function Header(
   {bio}: {bio: string[]}
 ) {
-  console.log(bio)
   return (
     <header className="py-6 flex items-center justify-between">
       <Link href="/" className="text-xl font-bold tracking-tight flex items-center">

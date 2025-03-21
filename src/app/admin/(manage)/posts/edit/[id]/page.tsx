@@ -4,12 +4,13 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { 
   SaveIcon,
-  EyeIcon,
   ArrowLeftIcon,
-  TagIcon,
   TrashIcon,
   AlertTriangleIcon,
-  LoaderIcon
+  LoaderIcon,
+  MaximizeIcon,
+  EyeOffIcon,
+  RocketIcon
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -46,6 +47,30 @@ type PageParams = {
   id: string;
 };
 
+function formatContentPreview(content: string): string {
+  // 简单转换Markdown为HTML预览
+  // 这里使用一个非常简单的方法，实际项目中应使用专业的Markdown解析库
+  let html = content
+    // 转义HTML标签
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    // 处理标题
+    .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
+    .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
+    .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
+    // 处理加粗和斜体
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    // 处理列表
+    .replace(/^- (.*?)$/gm, '<li>$1</li>')
+    // 处理链接
+    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
+    // 处理换行
+    .replace(/\n/g, '<br />');
+  
+  return html;
+}
+
 export default function EditPost({ params }: { params: Promise<PageParams> }) {
   // 使用React.use()解包params
   // 注意: 根据Next.js的说明，在未来版本中，对params直接访问将不再支持
@@ -60,51 +85,50 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [availableTags, setAvailableTags] = useState<Tag[]>([]);
   const [showTagSelector, setShowTagSelector] = useState(false);
-  const [error, setError] = useState("");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // 获取文章数据
   useEffect(() => {
     const fetchPost = async () => {
       try {
-        const res = await fetch(`/api/posts/${postId}`);
-        
-        if (!res.ok) {
-          if (res.status === 404) {
-            setError("未找到文章");
-            return;
-          }
-          throw new Error('获取文章失败');
+        setIsLoading(true);
+        const response = await fetch(`/api/posts/${postId}`);
+        if (!response.ok) {
+          toast.error("获取文章失败", {
+            description: "无法加载文章内容"
+          });
+          return;
         }
-        
-        const data = await res.json();
+        const data = await response.json();
         setPost(data);
-        setSelectedTags(data.tags.map((tag: Tag) => tag.id));
+        setSelectedTags(data.tags ? data.tags.map((tag: { id: string }) => tag.id) : []);
       } catch (error) {
-        console.error("获取文章失败:", error);
-        setError("加载失败");
+        console.error("Error fetching post:", error);
+        toast.error("获取文章失败", {
+          description: "发生错误，请稍后重试"
+        });
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     const fetchTags = async () => {
       try {
-        const res = await fetch('/api/tags');
-        if (!res.ok) {
-          throw new Error('获取标签失败');
+        const response = await fetch('/api/tags');
+        if (!response.ok) {
+          console.error("Failed to fetch tags");
+          return;
         }
-        const data = await res.json();
+        const data = await response.json();
         setAvailableTags(data);
       } catch (error) {
-        console.error('获取标签失败:', error);
-        toast.error('获取标签失败');
+        console.error("Error fetching tags:", error);
       }
     };
-    
+
     fetchPost();
     fetchTags();
-  }, [postId]);
+  }, [params]);
 
   // 保存文章
   const handleSave = async () => {
@@ -130,6 +154,9 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       
       if (!res.ok) {
         const data = await res.json();
+        toast.error("保存文章失败", {
+          description: data.error || "请稍后重试"
+        });
         throw new Error(data.error || '保存文章失败');
       }
       
@@ -144,18 +171,17 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       
       // 显示保存成功提示
       toast.success("文章已保存", {
-        description: "所有更改已成功保存",
+        description: "标签和发布状态已更新",
       });
     } catch (error) {
       console.error("保存文章失败:", error);
-      toast.error("保存文章失败");
     } finally {
       setIsSaving(false);
     }
   };
 
   // 切换发布状态
-  const handlePublishToggle = async () => {
+  const handleTogglePublished = async () => {
     if (!post) return;
     
     setIsSaving(true);
@@ -175,6 +201,9 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       
       if (!res.ok) {
         const data = await res.json();
+        toast.error("更新发布状态失败", {
+          description: data.error || "请稍后重试"
+        });
         throw new Error(data.error || '更新发布状态失败');
       }
       
@@ -199,7 +228,6 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       }
     } catch (error) {
       console.error("更新发布状态失败:", error);
-      toast.error("更新发布状态失败");
     } finally {
       setIsSaving(false);
     }
@@ -219,6 +247,9 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       
       if (!res.ok) {
         const data = await res.json();
+        toast.error("删除文章失败", {
+          description: data.error || "请稍后重试"
+        });
         throw new Error(data.error || '删除文章失败');
       }
       
@@ -231,7 +262,6 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
       router.push("/admin/posts");
     } catch (error) {
       console.error("删除文章失败:", error);
-      toast.error("删除文章失败");
       setIsSaving(false);
     }
   };
@@ -245,6 +275,57 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
     }
   };
 
+  // 保存URL别名
+  const saveSlug = async () => {
+    if (!post) return;
+    
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/posts/${post.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: post.title,
+          slug: post.slug,
+          content: post.content,
+          excerpt: post.excerpt,
+          published: post.published,
+          tags: selectedTags
+        }),
+      });
+      
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error("保存URL别名失败", {
+          description: data.error || "请稍后重试"
+        });
+        throw new Error(data.error || '保存URL别名失败');
+      }
+      
+      const updatedPost = await res.json();
+      setPost(updatedPost);
+      
+      toast.success("URL别名已更新");
+    } catch (error) {
+      console.error("保存URL别名失败:", error);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // 处理URL别名变更
+  const handleSlugChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (post) {
+      setPost({
+        ...post,
+        slug: e.target.value
+      });
+    }
+  };
+
+  // 加载状态
   if (isLoading) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
@@ -256,11 +337,12 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
     );
   }
 
-  if (error || !post) {
+  // 显示错误界面
+  if (!post) {
     return (
       <div className="flex h-[70vh] items-center justify-center">
         <div className="text-center">
-          <h3 className="text-lg font-medium text-destructive">{error || "加载失败"}</h3>
+          <h3 className="text-lg font-medium text-destructive">文章不存在或已被删除</h3>
           <button 
             onClick={() => router.push("/admin/posts")}
             className="mt-4 inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
@@ -277,34 +359,49 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">编辑文章</h2>
-        <div className="flex gap-2">
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={() => router.push("/admin/posts")}
+            className="inline-flex items-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium ring-offset-background transition-colors hover:bg-accent"
+          >
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            返回列表
+          </button>
           <button
             onClick={() => setShowDeleteDialog(true)}
-            className="inline-flex items-center rounded-md px-4 py-2 text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100"
-            disabled={isSaving}
+            className="ml-auto inline-flex items-center rounded-md border border-red-600 bg-white px-4 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50"
           >
             <TrashIcon className="mr-2 h-4 w-4" />
             删除文章
           </button>
           <button
-            onClick={handlePublishToggle}
+            onClick={handleTogglePublished}
             className={`inline-flex items-center rounded-md px-4 py-2 text-sm font-medium ${
               post.published
-                ? "bg-amber-100 text-amber-700 hover:bg-amber-200"
-                : "bg-green-100 text-green-700 hover:bg-green-200"
+                ? "border border-amber-600 bg-white text-amber-600 hover:bg-amber-50"
+                : "bg-green-600 text-white hover:bg-green-700"
             }`}
-            disabled={isSaving}
           >
-            <EyeIcon className="mr-2 h-4 w-4" />
-            {post.published ? "转为草稿" : "发布文章"}
+            {post.published ? (
+              <>
+                <EyeOffIcon className="mr-2 h-4 w-4" />
+                转为草稿
+              </>
+            ) : (
+              <>
+                <RocketIcon className="mr-2 h-4 w-4" />
+                发布文章
+              </>
+            )}
           </button>
           <button
-            onClick={handleSave}
-            className="inline-flex items-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
-            disabled={isSaving}
+            onClick={() => {
+              router.push(`/admin/posts/editor/${post.id}`);
+            }}
+            className="inline-flex items-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
-            <SaveIcon className="mr-2 h-4 w-4" />
-            保存修改
+            <MaximizeIcon className="mr-2 h-4 w-4" />
+            沉浸式编辑
           </button>
         </div>
       </div>
@@ -349,28 +446,9 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
             id="title"
             type="text"
             value={post.title}
-            onChange={(e) => setPost({ ...post, title: e.target.value })}
-            className="w-full rounded-md border border-input px-3 py-2 text-base ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="输入文章标题"
+            readOnly
+            className="w-full rounded-md border border-input bg-muted px-3 py-2 text-base ring-offset-background cursor-not-allowed"
           />
-        </div>
-
-        {/* 别名/Slug */}
-        <div className="space-y-2">
-          <label htmlFor="slug" className="text-sm font-medium">
-            URL 别名
-          </label>
-          <input
-            id="slug"
-            type="text"
-            value={post.slug}
-            onChange={(e) => setPost({ ...post, slug: e.target.value })}
-            className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="url-friendly-name"
-          />
-          <p className="text-xs text-muted-foreground">
-            用于 URL 的短名称，只允许字母、数字和连字符
-          </p>
         </div>
 
         {/* 摘要 */}
@@ -382,9 +460,8 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
             id="excerpt"
             rows={2}
             value={post.excerpt || ""}
-            onChange={(e) => setPost({ ...post, excerpt: e.target.value })}
-            className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="文章简短摘要，显示在列表中"
+            readOnly
+            className="w-full rounded-md border border-input bg-muted px-3 py-2 text-sm ring-offset-background cursor-not-allowed"
           />
         </div>
 
@@ -394,7 +471,13 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
             <label className="text-sm font-medium">标签</label>
             <button
               type="button"
-              onClick={() => setShowTagSelector(!showTagSelector)}
+              onClick={() => {
+                if (showTagSelector) {
+                  // 关闭选择器时自动保存
+                  handleSave();
+                }
+                setShowTagSelector(!showTagSelector);
+              }}
               className="inline-flex items-center text-xs text-primary hover:underline"
             >
               {showTagSelector ? "完成选择" : "选择标签"}
@@ -444,19 +527,55 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
           )}
         </div>
 
+        {/* 别名/Slug */}
+        <div className="space-y-2">
+          <label htmlFor="slug" className="text-sm font-medium">
+            URL 别名
+          </label>
+          <div className="flex space-x-2">
+            <input
+              id="slug"
+              type="text"
+              value={post.slug}
+              onChange={handleSlugChange}
+              className="w-full rounded-md border border-input px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              placeholder="url-friendly-name"
+            />
+            <button
+              onClick={saveSlug}
+              className="inline-flex items-center rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90"
+              disabled={isSaving}
+            >
+              <SaveIcon className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            用于 URL 的短名称，只允许字母、数字和连字符
+          </p>
+        </div>
+
         {/* 内容 */}
         <div className="space-y-2">
           <label htmlFor="content" className="text-sm font-medium">
-            文章内容 (Markdown)
+            文章内容
+            <span className="text-xs text-muted-foreground ml-2">
+              支持Markdown和富文本格式，在沉浸式编辑器中编辑
+            </span>
           </label>
-          <textarea
-            id="content"
-            rows={15}
-            value={post.content}
-            onChange={(e) => setPost({ ...post, content: e.target.value })}
-            className="w-full rounded-md border border-input px-3 py-2 text-sm font-mono ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            placeholder="使用 Markdown 格式编写文章内容"
-          />
+          <div className="w-full rounded-md border border-input p-6 flex flex-col items-center justify-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              文章内容仅在沉浸式编辑模式中可编辑
+            </p>
+            <button
+              onClick={() => {
+                router.push(`/admin/posts/editor/${post.id}`);
+              }}
+              className="inline-flex items-center gap-2 px-6 py-3 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+            >
+              <MaximizeIcon className="h-5 w-5" />
+              进入沉浸式编辑模式
+            </button>
+          </div>
         </div>
 
         {/* 文章元数据信息 */}
