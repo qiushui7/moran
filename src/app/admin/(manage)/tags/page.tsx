@@ -134,7 +134,7 @@ export default function TagsManagement() {
     } catch (error) {
       console.error('添加标签失败:', error);
       const errorMessage = typeof error === 'object' && error !== null 
-        ? (error as any).message || JSON.stringify(error) 
+        ? (error as Error).message || JSON.stringify(error)
         : '添加标签失败';
       
       setError(`添加标签失败: ${errorMessage}`);

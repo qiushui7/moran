@@ -23,7 +23,7 @@ type Post = {
   tags?: { id: string; name?: string; color?: string }[];
 };
 
-export default function PostEditorPage({ params }: { params: { id: string } }) {
+export default function PostEditorPage({ params }: { params: Promise<{ id: string }> }) {
   const actualParams = use(params as unknown as Promise<{ id: string }>);
   const router = useRouter();
   const [post, setPost] = useState<Post | null>(null);
@@ -34,7 +34,7 @@ export default function PostEditorPage({ params }: { params: { id: string } }) {
   const contentRef = useRef<string>("");
   const editorContainerRef = useRef<HTMLDivElement>(null);
   const lastSaveTimeRef = useRef<Date | null>(null);
-  const fetchPost = async () => {
+  const fetchPost =useCallback(async () => {
     try {
       const response = await fetch(`/api/posts/${actualParams.id}`);
       if (!response.ok) {
@@ -45,7 +45,6 @@ export default function PostEditorPage({ params }: { params: { id: string } }) {
         throw new Error(errorData.error || "获取文章失败");
       }
       const data = await response.json();
-      console.log("获取文章数据:", data);
       setPost(data);
       setContent(data.content || "");
     } catch (error) {
@@ -53,11 +52,11 @@ export default function PostEditorPage({ params }: { params: { id: string } }) {
     } finally {
       setLoading(false);
     }
-  };
+  },[actualParams.id]);
   // 获取文章数据
   useEffect(() => {
     fetchPost();
-  }, [actualParams.id]);
+  }, [actualParams.id, fetchPost]);
 
   useEffect(() => {
     if (post) {
@@ -168,12 +167,9 @@ export default function PostEditorPage({ params }: { params: { id: string } }) {
   };
 
   // 定义防抖保存函数
-  const debouncedSavePost = useCallback(
-    debounce((contentToSave: string) => {
+  const debouncedSavePost = debounce((contentToSave: string) => {
       if (post) savePost(contentToSave);
-    }, 2000),
-    [post]
-  );
+  }, 2000)
   
   // 处理内容变更
   const handleContentChange = (newContent: string) => {
@@ -184,7 +180,6 @@ export default function PostEditorPage({ params }: { params: { id: string } }) {
   // 保存文章
   const savePost = async (contentToSave: string) => {
     if (!post) return;
-    console.log("保存文章:", contentToSave);
     setSaving(true);
     try {
       const response = await fetch(`/api/posts/${post.id}`, {

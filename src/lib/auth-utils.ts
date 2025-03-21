@@ -36,7 +36,6 @@ export const verifySession = cache(async () => {
     const session = await auth();
     
     if (!session?.user) {
-      console.log("验证会话失败: session没有user对象");
       return null;
     }
 
@@ -45,17 +44,14 @@ export const verifySession = cache(async () => {
     
     // 如果userId不存在，尝试使用accessToken
     if (!userId && session.user.accessToken) {
-      console.log("验证会话: 尝试使用accessToken获取用户");
       const user = await getUserByAccessToken(session.user.accessToken);
       
       if (user) {
         userId = user.id;
-        console.log("验证会话: 通过accessToken找到用户:", userId);
       }
     }
     
     if (!userId) {
-      console.log("验证会话失败: 用户ID缺失");
       return null;
     }
     

@@ -4,7 +4,7 @@ import { APP_CONSTANTS } from "@/lib/utils";
 import { verifySession } from "@/lib/auth-utils";
 
 // 获取所有标签
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -117,8 +117,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log("尝试创建标签:", { name, slug, userId });
-
     // 创建新标签
     const newTag = await prisma.tag.create({
       data: {
@@ -128,7 +126,6 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    console.log("标签创建成功:", newTag);
     return NextResponse.json(newTag);
   } catch (error) {
     console.error("创建标签失败:", error);

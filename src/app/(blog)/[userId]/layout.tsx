@@ -33,7 +33,6 @@ export default async function BlogLayout({
   const user = await getUserById(userId);
   const profile = user?.profile;
   const bio = profile?.bio ? profile.bio.split('\n') : [];
-  console.log('bio',bio)
   return (
       <div className="flex flex-col min-h-screen max-w-3xl mx-auto px-4">
         <Header bio={bio} />

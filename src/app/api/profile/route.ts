@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/auth-utils";
-import { log } from "console";
 
 // 获取当前用户的个人资料
 export async function GET() {
@@ -66,10 +65,8 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    console.log(body)
     // 将前端传来的bio数组转换为字符串
     const bioString = Array.isArray(body.bio) ? body.bio.join('\n') : body.bio || '';
-    console.log('bioString',bioString)
     // 查找用户的个人资料
     let profile = await prisma.profile.findUnique({
       where: { userId: session.userId }

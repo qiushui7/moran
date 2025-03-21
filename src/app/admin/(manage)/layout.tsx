@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { redirect, usePathname } from "next/navigation";
 import { 
@@ -14,6 +14,7 @@ import { formatDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { BottomToolbar } from "@/components/ui/bottom-toolbar";
+import Image from "next/image";
 
 // 类型定义
 type Tag = {
@@ -47,59 +48,7 @@ export default function AdminLayout({
 
   const isLoggedIn = useMemo(() => status === "authenticated", [status]);
   
-  
-  // 获取文章列表和标签列表
-  useEffect(() => {
-    if (isLoggedIn) {
-      fetchPosts();
-      fetchTags();
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      redirect("/admin");
-    }
-    console.log(status);
-  },[status])
-  
-  // 添加事件监听，以便在文章更新后刷新列表
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    
-    // 刷新文章列表事件处理函数
-    const handleRefreshPosts = (e: CustomEvent) => {
-      console.log('刷新文章列表事件触发');
-      fetchPosts();
-      
-      // 如果事件中包含文章ID，则选中该文章
-      if (e.detail?.postId) {
-        setSelectedPostId(e.detail.postId);
-      }
-    };
-    window.addEventListener('refreshPostsList', handleRefreshPosts as EventListener);
-    return () => {
-      window.removeEventListener('refreshPostsList', handleRefreshPosts as EventListener);
-    };
-  }, [isLoggedIn]);
-  
-  // 添加事件监听，以便在标签更新后刷新标签列表
-  useEffect(() => {
-    if (!isLoggedIn) return;
-    
-    // 刷新标签列表事件处理函数
-    const handleRefreshTags = () => {
-      console.log('刷新标签列表事件触发');
-      fetchTags();
-    };
-    window.addEventListener('refreshTagsList', handleRefreshTags as EventListener);
-    return () => {
-      window.removeEventListener('refreshTagsList', handleRefreshTags as EventListener);
-    };
-  }, [isLoggedIn]);
-  
-  // 从API获取文章
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     setIsLoading(true);
     try {
       let url = '/api/posts';
@@ -119,7 +68,57 @@ export default function AdminLayout({
     } finally {
       setIsLoading(false);
     }
-  };
+  },[selectedTagId]);
+  
+  // 获取文章列表和标签列表
+  useEffect(() => {
+    if (isLoggedIn) {
+      fetchPosts();
+      fetchTags();
+    }
+  }, [fetchPosts, isLoggedIn]);
+
+  useEffect(() => {
+    if (!isLoggedIn) {
+      redirect("/admin");
+    }
+  },[isLoggedIn, status])
+  
+  // 添加事件监听，以便在文章更新后刷新列表
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
+    // 刷新文章列表事件处理函数
+    const handleRefreshPosts = (e: CustomEvent) => {
+      fetchPosts();
+      
+      // 如果事件中包含文章ID，则选中该文章
+      if (e.detail?.postId) {
+        setSelectedPostId(e.detail.postId);
+      }
+    };
+    window.addEventListener('refreshPostsList', handleRefreshPosts as EventListener);
+    return () => {
+      window.removeEventListener('refreshPostsList', handleRefreshPosts as EventListener);
+    };
+  }, [fetchPosts, isLoggedIn]);
+  
+  // 添加事件监听，以便在标签更新后刷新标签列表
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    
+    // 刷新标签列表事件处理函数
+    const handleRefreshTags = () => {
+      fetchTags();
+    };
+    window.addEventListener('refreshTagsList', handleRefreshTags as EventListener);
+    return () => {
+      window.removeEventListener('refreshTagsList', handleRefreshTags as EventListener);
+    };
+  }, [isLoggedIn]);
+  
+  // 从API获取文章
+
   
   // 获取所有标签
   const fetchTags = async () => {
@@ -148,7 +147,7 @@ export default function AdminLayout({
     if (isLoggedIn) {
       fetchPosts();
     }
-  }, [selectedTagId, isLoggedIn]);
+  }, [selectedTagId, isLoggedIn, fetchPosts]);
 
   // 过滤后的文章
   const filteredPosts = posts.filter(post => 
@@ -180,10 +179,12 @@ export default function AdminLayout({
                         {session.user.name || session.user.email}
                       </span>
                       {session.user.image ? (
-                        <img 
+                        <Image
+                          width={32}
+                          height={32}
                           src={session.user.image} 
                           alt="User avatar" 
-                          className="h-8 w-8 rounded-full border"
+                          style={{borderRadius:'100%'}}
                         />
                       ) : (
                         <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">

@@ -12,13 +12,6 @@ const LexicalViewer = dynamic(
 
 type PostWithTags = Post & { tags: Tag[] };
 
-interface PostPageParams {
-  params: {
-    userId: string;
-    slug: string;
-  };
-}
-
 // 获取用户信息
 async function getUserById(userId: string): Promise<User | null> {
   try {
@@ -53,7 +46,10 @@ async function getPost(userId: string, slug: string): Promise<PostWithTags | nul
   return response.json();
 }
 
-export async function generateMetadata({ params }: PostPageParams) {
+export async function generateMetadata({ params }: { params: Promise<{
+  userId: string;
+  slug: string;
+}>}) {
   const { userId, slug } = await params;
   const post = await getPost(userId, slug);
 
@@ -70,7 +66,10 @@ export async function generateMetadata({ params }: PostPageParams) {
   };
 }
 
-export default async function PostPage({ params }: PostPageParams) {
+export default async function PostPage({ params }: { params: Promise<{
+  userId: string;
+  slug: string;
+}>}) {
   const { userId, slug } = await params;
   
   // 获取用户信息
@@ -81,7 +80,6 @@ export default async function PostPage({ params }: PostPageParams) {
   
   // 获取文章
   const post = await getPost(userId, slug);
-  console.log('post',post)
   if (!post || !post.published) {
     notFound();
   }

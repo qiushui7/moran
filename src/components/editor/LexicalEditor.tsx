@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import { LexicalComposer } from "@lexical/react/LexicalComposer";
 import { RichTextPlugin } from "@lexical/react/LexicalRichTextPlugin";
 import { ContentEditable } from "@lexical/react/LexicalContentEditable";
@@ -18,15 +18,13 @@ import { MarkdownShortcutPlugin } from "@lexical/react/LexicalMarkdownShortcutPl
 import { TRANSFORMERS } from "@lexical/markdown";
 import { OnChangePlugin } from "@lexical/react/LexicalOnChangePlugin";
 import { LexicalEditor as LEditor, EditorState } from "lexical";
-import { $getRoot, $createParagraphNode, $insertNodes } from "lexical";
-import { $generateNodesFromDOM } from "@lexical/html";
 
 import { ToolbarPlugin } from "./plugins/ToolbarPlugin";
 import { CommandMenuPlugin } from "./plugins/CommandMenuPlugin";
-import { BlockPlugin } from "./plugins/BlockPlugin";
-import { BlockDecoratorPlugin } from "./plugins/BlockDecoratorPlugin";
+// import { BlockPlugin } from "./plugins/BlockPlugin";
+// import { BlockDecoratorPlugin } from "./plugins/BlockDecoratorPlugin";
 import EditorTheme from "./themes/EditorTheme";
-import { markdownToHtml, htmlToMarkdown, exportToHTML, importHTML } from "./utils/editorUtils";
+import { exportToHTML, importHTML, markdownToHtml, htmlToMarkdown } from "./utils/editorUtils";
 import "./styles/Editor.css";
 
 interface LexicalEditorProps {
@@ -44,25 +42,24 @@ export default function LexicalEditor({
 }: LexicalEditorProps) {
   const [htmlContent, setHtmlContent] = useState<string>("");
   const editorRef = useRef<LEditor | null>(null);
-  const lastInitialContentRef = useRef<string>(null);
-  const lastHtmlContentRef = useRef<string>(null);
+  const lastInitialContentRef = useRef<string>(initialContent);
 
   // 初始化HTML内容
   useEffect(() => {
-    // 检查内容是否变化，避免不必要的重置
     if (initialContent !== lastInitialContentRef.current) {
-      console.log('initial')
-      // const html = markdownToHtml(initialContent);
-      setHtmlContent(initialContent);
+      const html = markdownToHtml(initialContent);
+      setHtmlContent(html);
       lastInitialContentRef.current = initialContent;
       
       // 如果编辑器已经初始化，则重置编辑器内容
-      setTimeout(() => {
-        if (editorRef.current) {
-          console.log('importHTML')
-          importHTML(editorRef.current, initialContent);
-        }
-      }, 0);
+      if (editorRef.current) {
+        // 使用导入HTML工具函数更新编辑器内容
+        setTimeout(() => {
+          if (editorRef.current) {
+            importHTML(editorRef.current, html);
+          }
+        }, 0);
+      }
     }
   }, [initialContent]);
 
@@ -74,11 +71,9 @@ export default function LexicalEditor({
       editorState.read(async () => {
         // 获取HTML内容
         const html = await exportToHTML(editor);
-        console.log("HTML内容:", html);
-        if(html !== lastHtmlContentRef.current) {
-          onChange(html);
-          lastHtmlContentRef.current = html;
-        }
+        // 转换为Markdown并传递给父组件
+        const markdown = htmlToMarkdown(html);
+        onChange(markdown);
       });
     }
   };

@@ -134,9 +134,9 @@ export default function NewPost() {
       
       // 跳转到编辑页面
       router.push(`/admin/posts/edit/${newPost.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("创建文章失败:", error);
-      setError(error.message || "创建文章失败");
+      setError(error instanceof Error ? error.message : "创建文章失败");
       setIsSaving(false);
     }
   };

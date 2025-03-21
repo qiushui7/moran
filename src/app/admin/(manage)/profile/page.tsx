@@ -9,23 +9,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 
-// 个人资料类型定义
-type Profile = {
-  id: string;
-  signature?: string;
-  githubUrl?: string;
-  linkedinUrl?: string;
-  contactEmail?: string;
-  bio: string[];
-  title: string;
-  userId: string;
-};
-
 export default function ProfilePage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [newBioItem, setNewBioItem] = useState("");
   
   // 表单数据
@@ -47,7 +34,6 @@ export default function ProfilePage() {
           throw new Error("获取个人资料失败");
         }
         const data = await res.json();
-        setProfile(data);
         
         // 设置表单初始值
         setFormData({

@@ -21,7 +21,7 @@ export function BlockPlugin(): null {
       // 处理回车键，创建新块
       editor.registerCommand(
         KEY_ENTER_COMMAND,
-        (event) => {
+        () => {
           const selection = $getSelection();
           
           if (!$isRangeSelection(selection) || !selection.isCollapsed()) {

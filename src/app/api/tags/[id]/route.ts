@@ -2,14 +2,12 @@ import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { verifySession } from "@/lib/auth-utils";
 
-interface Params {
-  params: {
-    id: string;
-  };
+type Sec = {
+  params: Promise<{id: string}>
 }
 
 // 获取单个标签
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Sec) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -19,7 +17,8 @@ export async function GET(request: NextRequest, { params }: Params) {
     }
     
     const { userId } = session;
-    const id = params.id;
+    const actualParams = await params
+    const id = actualParams.id;
 
     // 查找该用户的指定标签
     const tag = await prisma.tag.findFirst({
@@ -58,7 +57,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 // 更新标签
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, { params }: Sec) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -68,7 +67,8 @@ export async function PUT(request: NextRequest, { params }: Params) {
     }
     
     const { userId } = session;
-    const id = params.id;
+    const actualParams = await params;
+    const id = actualParams.id
     const { name, slug } = await request.json();
 
     // 验证数据
@@ -132,7 +132,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // 删除标签
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: Sec) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -142,7 +142,8 @@ export async function DELETE(request: NextRequest, { params }: Params) {
     }
     
     const { userId } = session;
-    const id = params.id;
+    const actualParams = await params;
+    const id = actualParams.id
 
     // 检查标签是否存在且属于当前用户
     const existingTag = await prisma.tag.findFirst({

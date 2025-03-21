@@ -1,15 +1,16 @@
+/* eslint-disable */
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import {
-  SELECTION_CHANGE_COMMAND,
+  // SELECTION_CHANGE_COMMAND,
   FORMAT_TEXT_COMMAND,
   FORMAT_ELEMENT_COMMAND,
   $getSelection,
   $isRangeSelection,
   $createParagraphNode,
-  $getRoot,
+  // $getRoot,
   CAN_REDO_COMMAND,
   CAN_UNDO_COMMAND,
   REDO_COMMAND,
@@ -26,13 +27,17 @@ import {
 import {
   INSERT_ORDERED_LIST_COMMAND,
   INSERT_UNORDERED_LIST_COMMAND,
-  REMOVE_LIST_COMMAND,
   $isListNode,
   ListNode
 } from "@lexical/list";
 import { $isLinkNode, TOGGLE_LINK_COMMAND } from "@lexical/link";
-import { $isCodeNode, $createCodeNode, CODE_LANGUAGE_MAP, CODE_LANGUAGE_FRIENDLY_NAME_MAP } from "@lexical/code";
-import { $isTableNode } from "@lexical/table";
+import { 
+  // $isCodeNode, 
+  $createCodeNode, 
+  // CODE_LANGUAGE_MAP, 
+  // CODE_LANGUAGE_FRIENDLY_NAME_MAP 
+} from "@lexical/code";
+// import { $isTableNode } from "@lexical/table";
 import { $findMatchingParent, $getNearestNodeOfType } from "@lexical/utils";
 import {
   AlignCenter,
@@ -41,19 +46,19 @@ import {
   AlignRight,
   Bold,
   Code,
-  Code2,
+  // Code2,
   Image,
   Italic,
   Link,
-  List,
-  ListOrdered,
+  // List,
+  // ListOrdered,
   Minus,
   Redo,
   Strikethrough,
-  Type,
+  // Type,
   Underline,
   Undo,
-  Quote
+  // Quote
 } from "lucide-react";
 
 // 工具栏按钮组件

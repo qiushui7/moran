@@ -8,12 +8,6 @@ type TagWithPosts = Tag & {
   _count: { posts: number };
 };
 
-interface TagPageParams {
-  params: {
-    userId: string;
-    slug: string;
-  };
-}
 
 // 获取单个标签及其文章
 async function getTag(userId: string, slug: string): Promise<TagWithPosts | null> {
@@ -35,8 +29,12 @@ async function getTag(userId: string, slug: string): Promise<TagWithPosts | null
   return response.json();
 }
 
-export async function generateMetadata({ params }: TagPageParams) {
-  const tag = await getTag(params.userId, params.slug);
+export async function generateMetadata({ params }: {params: Promise<{
+  userId: string;
+  slug: string;
+}>}) {
+  const {userId, slug} = await params
+  const tag = await getTag(userId, slug);
 
   if (!tag) {
     return {
@@ -51,8 +49,11 @@ export async function generateMetadata({ params }: TagPageParams) {
   };
 }
 
-export default async function TagPage({ params }: TagPageParams) {
-  const { userId, slug } = params;
+export default async function TagPage({ params }: {params: Promise<{
+  userId: string;
+  slug: string;
+}>}) {
+  const { userId, slug } = await params;
   const tag = await getTag(userId, slug);
 
   if (!tag) {
@@ -66,7 +67,7 @@ export default async function TagPage({ params }: TagPageParams) {
           <h1 className="text-3xl font-bold tracking-tight">#{tag.name}</h1>
         </div>
         <p className="text-muted-foreground mt-2">
-          与"{tag.name}"相关的文章 ({tag.posts.length}篇)
+          与&quot;{tag.name}&quot;相关的文章 ({tag.posts.length}篇)
         </p>
       </div>
 

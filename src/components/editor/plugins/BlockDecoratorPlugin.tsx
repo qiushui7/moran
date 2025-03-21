@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
-import { $isHeadingNode } from "@lexical/rich-text";
-import { $isListNode, ListNode } from "@lexical/list";
-import { $isParagraphNode } from "lexical";
+// import { $isHeadingNode } from "@lexical/rich-text";
+// import { $isListNode, ListNode } from "@lexical/list";
+// import { $isParagraphNode } from "lexical";
 
 export function BlockDecoratorPlugin(): null {
   const [editor] = useLexicalComposerContext();
@@ -88,12 +88,12 @@ export function BlockDecoratorPlugin(): null {
 
   // 注册DOM节点转换
   useEffect(() => {
-    const removeTransform = editor.registerNodeTransform(ListNode, (node) => {
-      // 列表节点的转换处理
-      // 可以在这里添加自定义的列表行为
-    });
+    // const removeTransform = editor.registerNodeTransform(ListNode, (node) => {
+    //   // 列表节点的转换处理
+    //   // 可以在这里添加自定义的列表行为
+    // });
     
-    return removeTransform;
+    // return removeTransform;
   }, [editor]);
 
   return null;

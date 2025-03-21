@@ -3,7 +3,6 @@
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { cn } from '@/lib/utils'
-import { useMemo } from 'react'
 
 export default function UserNavLink({ href, label }: { href: string, label: string }) {
     const pathname = usePathname();
@@ -18,10 +17,10 @@ export default function UserNavLink({ href, label }: { href: string, label: stri
       return null;
     }
     const userHref = `/${userId}${href}`
-    const isActive = useMemo(() => pathname === userHref, [pathname, userHref])
-
+    // 将 useMemo 移到组件顶部,避免条件渲染
+    const isActive = pathname === userHref
     return (
-        <Link href={userHref} className={cn(
+        <Link href={`/${userId}${href}`} className={cn(
             'text-sm hover:text-foreground transition-colors',
             isActive ? 'text-foreground font-medium' : 'text-muted-foreground'
         )}>

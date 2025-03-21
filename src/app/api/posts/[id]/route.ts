@@ -2,14 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/auth-utils";
 
-interface Params {
-  params: {
-    id: string;
-  };
+type Sec = {
+  params: Promise<{id: string}>
 }
 
 // 获取单个文章
-export async function GET(request: NextRequest, { params }: Params) {
+export async function GET(request: NextRequest, { params }: Sec) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -50,7 +48,7 @@ export async function GET(request: NextRequest, { params }: Params) {
 }
 
 // 更新文章
-export async function PUT(request: NextRequest, { params }: Params) {
+export async function PUT(request: NextRequest, { params }: Sec) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -87,7 +85,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
         { status: 400 }
       );
     }
-    console.log(data);
+    
     const { title, slug, content, excerpt, published, tags } = data;
     
     // 验证必填字段
@@ -183,7 +181,7 @@ export async function PUT(request: NextRequest, { params }: Params) {
 }
 
 // 删除文章
-export async function DELETE(request: NextRequest, { params }: Params) {
+export async function DELETE(request: NextRequest, { params }: Sec) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -229,7 +227,7 @@ export async function DELETE(request: NextRequest, { params }: Params) {
 }
 
 // 部分更新文章（仅内容）
-export async function PATCH(request: NextRequest, { params }: Params) {
+export async function PATCH(request: NextRequest, { params }: Sec) {
   try {
     // 验证用户会话并获取userId
     const session = await verifySession();
@@ -260,7 +258,7 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     let data;
     try {
       data = await request.json();
-    } catch (e) {
+    } catch {
       return NextResponse.json(
         { error: "无效的JSON数据" },
         { status: 400 }

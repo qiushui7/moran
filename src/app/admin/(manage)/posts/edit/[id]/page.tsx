@@ -47,35 +47,11 @@ type PageParams = {
   id: string;
 };
 
-function formatContentPreview(content: string): string {
-  // 简单转换Markdown为HTML预览
-  // 这里使用一个非常简单的方法，实际项目中应使用专业的Markdown解析库
-  let html = content
-    // 转义HTML标签
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    // 处理标题
-    .replace(/^# (.*?)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.*?)$/gm, '<h2>$1</h2>')
-    .replace(/^### (.*?)$/gm, '<h3>$1</h3>')
-    // 处理加粗和斜体
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    // 处理列表
-    .replace(/^- (.*?)$/gm, '<li>$1</li>')
-    // 处理链接
-    .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2">$1</a>')
-    // 处理换行
-    .replace(/\n/g, '<br />');
-  
-  return html;
-}
-
-export default function EditPost({ params }: { params: Promise<PageParams> }) {
+export default function EditPost({ params }:{params:Promise<PageParams>}) {
   // 使用React.use()解包params
   // 注意: 根据Next.js的说明，在未来版本中，对params直接访问将不再支持
   // 必须使用React.use()来解包Promise以获取params值
-  const unwrappedParams = use(params);
+  const unwrappedParams = use(params as unknown as Promise<PageParams>);
   const postId = unwrappedParams.id;
   
   const router = useRouter();
@@ -128,7 +104,7 @@ export default function EditPost({ params }: { params: Promise<PageParams> }) {
 
     fetchPost();
     fetchTags();
-  }, [params]);
+  }, [unwrappedParams, postId]);
 
   // 保存文章
   const handleSave = async () => {

@@ -1,5 +1,3 @@
-import Link from "next/link";
-
 export const metadata = {
   title: "关于 - 墨染",
   description: "了解关于作者的更多信息",

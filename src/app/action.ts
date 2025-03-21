@@ -1,6 +1,6 @@
 'use server'
 import { signIn, signOut } from "@/auth";
-import { redirect } from "next/navigation";
+// import { redirect } from "next/navigation";
 export const signInWithGoogle = async () => {
     await signIn("google");
 }

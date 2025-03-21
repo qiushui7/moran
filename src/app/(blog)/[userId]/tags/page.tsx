@@ -28,9 +28,10 @@ async function getAllTags(userId: string): Promise<TagWithCount[]> {
 export default async function TagsPage({
   params
 }: {
-  params: { userId: string }
+  params: Promise<{ userId: string }>
 }) {
-  const userId = params.userId;
+
+  const { userId } = await params;
   const tags = await getAllTags(userId);
 
   return (

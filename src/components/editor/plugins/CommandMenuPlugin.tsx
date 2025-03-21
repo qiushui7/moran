@@ -13,7 +13,7 @@ import {
 import {
   $createHeadingNode,
   $createQuoteNode,
-  HeadingTagType,
+  // HeadingTagType,
 } from "@lexical/rich-text";
 import { $wrapNodes } from "@lexical/selection";
 import { $createParagraphNode } from "lexical";

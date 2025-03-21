@@ -32,7 +32,7 @@ export function htmlToMarkdown(html: string): string {
   if (!html) return "";
   
   // 简单的HTML到Markdown转换
-  let markdown = html
+  const markdown = html
     // 处理标题
     .replace(/<h1>(.*?)<\/h1>/g, "# $1\n\n")
     .replace(/<h2>(.*?)<\/h2>/g, "## $1\n\n")
@@ -77,7 +77,7 @@ export function markdownToHtml(markdown: string): string {
   if (!markdown) return "";
   
   // 简单的Markdown到HTML转换
-  let html = markdown
+  const html = markdown
     // 处理标题
     .replace(/^# (.*?)$/gm, "<h1>$1</h1>")
     .replace(/^## (.*?)$/gm, "<h2>$1</h2>")
@@ -106,6 +106,6 @@ export function markdownToHtml(markdown: string): string {
 }
 
 // 获取Lexical编辑器根节点
-function $getRoot() {
-  return $getRoot();
-} 
+// function $getRoot() {
+//   return $getRoot();
+// } 

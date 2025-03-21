@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Github, Linkedin, Mail } from "lucide-react";
 import type { Post, Tag, User, Profile } from "@prisma/client";
@@ -63,10 +64,12 @@ export default async function UserHomePage({
       <section className="space-y-6">
         <div className="flex items-center gap-4">
           {user.image ? (
-            <img 
+            <Image
+              width={64}
+              height={64}
               src={user.image} 
               alt={user.name || '用户头像'} 
-              className="w-16 h-16 rounded-full"
+              style={{borderRadius:'100%'}}
             />
           ) : (
             <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xl font-semibold">
