@@ -6,26 +6,34 @@ services:
       dockerfile: Dockerfile
     restart: always
     env_file:
-      - ./.env
+      - ./.env.local.test
     ports:
       - '3000:3000'
     depends_on:
-      - db
+      db:
+        condition: service_healthy  # 确保数据库完全启动后再启动应用
     networks:
       - qiushui-network
 
   # PostgreSQL 数据库
   db:
-    image: postgres:16-alpine
+    image: postgres:latest
     restart: always
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=123456
       - POSTGRES_DB=qiushui_blog
+      - PGDATA=/var/lib/postgresql/data/pgdata  # 明确指定PGDATA路径
     ports:
       - '5432:5432'
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:  # 添加健康检查
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    command: ["postgres", "-c", "log_statement=all"]  # 启用详细日志记录
     networks:
       - qiushui-network
 
@@ -34,4 +42,6 @@ networks:
     driver: bridge
 
 volumes:
-  postgres-data: 
+  postgres_data:
+    name: qiushui_blog_postgres_data
+ 

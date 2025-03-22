@@ -35,11 +35,24 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# 安装PostgreSQL客户端工具（用于健康检查）
+RUN apk add --no-cache postgresql-client
+
 # 添加非root用户
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
+# 直接从builder阶段复制node_modules
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/prisma ./prisma
+
+# 复制启动脚本并设置权限
+COPY start.sh ./
+RUN chmod +x start.sh
+
 # 复制必要文件（按照依赖顺序，减少层）
+COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
@@ -50,4 +63,4 @@ USER nextjs
 EXPOSE 3000
 
 # 启动命令
-CMD ["node", "server.js"] 
+CMD ["./start.sh"] 
