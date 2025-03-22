@@ -18,13 +18,17 @@ export default async function Header(
     <header className="py-6 flex items-center justify-between">
       <Link href="/" className="text-xl font-bold tracking-tight flex items-center">
         <div className="inline-block min-w-24">
-          <TypeWriter 
-            texts={bio} 
-            typingSpeed={120}
-            deletingSpeed={80}
-            delayBetweenTexts={2000}
-            className="text-primary"
-          />
+          {bio.length > 0 ? (
+            <TypeWriter 
+              texts={bio}
+              typingSpeed={120}
+              deletingSpeed={80}
+              delayBetweenTexts={2000}
+              className="text-primary"
+            />
+          ) : (
+            null
+          )}
         </div>
       </Link>
       <nav className="flex items-center gap-6">
