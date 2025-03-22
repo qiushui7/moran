@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Post, Tag } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 type PostWithTags = Post & { tags: Tag[] };
 type TagWithPosts = Tag & { 
@@ -11,22 +12,42 @@ type TagWithPosts = Tag & {
 
 // 获取单个标签及其文章
 async function getTag(userId: string, slug: string): Promise<TagWithPosts | null> {
-  // 构建API URL，使用userId过滤
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public/tags/${slug}?userId=${userId}`;
-  
-  const response = await fetch(apiUrl, { 
-    next: { revalidate: 60 } // 每60秒重新验证数据
-  });
-  
-  if (!response.ok) {
-    if (response.status === 404) {
-      return null;
-    }
-    console.error(`Failed to fetch tag: ${slug}`);
+  try {
+    // 使用Prisma直接查询数据库
+    const tag = await prisma.tag.findFirst({
+      where: {
+        userId: userId,
+        slug: slug,
+      },
+      include: {
+        posts: {
+          where: {
+            published: true, // 只获取已发布的文章
+          },
+          include: {
+            tags: true, // 包含文章的标签信息
+          },
+          orderBy: {
+            createdAt: 'desc', // 按创建时间降序排列
+          },
+        },
+        _count: {
+          select: {
+            posts: {
+              where: {
+                published: true, // 只计算已发布的文章数量
+              }
+            }
+          }
+        }
+      },
+    });
+    
+    return tag;
+  } catch (error) {
+    console.error(`获取标签失败: ${slug}`, error);
     return null;
   }
-  
-  return response.json();
 }
 
 export async function generateMetadata({ params }: {params: Promise<{

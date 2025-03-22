@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRightIcon, UserIcon, PencilIcon, TagIcon, BookOpenIcon, PaletteIcon, HeartIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -10,10 +11,21 @@ export default function HomePage() {
     <div className="min-h-screen">
       {/* Hero区域 */}
       <section className="py-20 text-center">
-        <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">墨染</h1>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          一个简洁、现代的博客平台，让你专注于内容创作，展示你的思想和见解。
-        </p>
+        <div className="flex flex-col items-center mb-10">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold tracking-tight">墨染</h1>
+            <Image 
+              src="/MoranLogos/logo-transparent-png.png" 
+              alt="墨染博客" 
+              width={80} 
+              height={80}
+              priority
+            />
+          </div>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            一个简洁、现代的博客平台，让你专注于内容创作，展示你的思想和见解。
+          </p>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-5xl mx-auto mb-10 px-4">
           {/* 左侧特色功能 */}
@@ -138,9 +150,6 @@ export default function HomePage() {
                   <div className="h-4 w-1/2 bg-primary/20 rounded"></div>
                 </div>
               </div>
-              <div className="absolute -bottom-5 -right-5 bg-background rounded-full p-2 shadow-lg border">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary h-10 w-10"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="16"></line><line x1="8" y1="12" x2="16" y2="12"></line></svg>
-              </div>
             </div>
             <div>
               <h3 className="text-2xl font-semibold mb-4">集中精力于创作</h3>
@@ -168,10 +177,21 @@ export default function HomePage() {
       
       {/* 行动召唤 */}
       <section className="py-20 text-center bg-accent">
-        <h2 className="text-3xl font-bold tracking-tight mb-6">开始你的写作之旅</h2>
-        <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
-          加入我们的博客平台，分享你的观点和见解，与读者建立联系。
-        </p>
+        <div className="flex flex-col items-center mb-6">
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <h2 className="text-3xl font-bold tracking-tight">开始你的写作之旅</h2>
+            <Image 
+              src="/MoranLogos/logo-transparent-png.png" 
+              alt="墨染博客" 
+              width={50} 
+              height={50}
+              className="opacity-80"
+            />
+          </div>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
+            加入我们的博客平台，分享你的观点和见解，与读者建立联系。
+          </p>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href={`/${DEFAULT_USER_ID}`}>
             <Button size="lg" variant="outline" className="px-8">

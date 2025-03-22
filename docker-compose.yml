@@ -10,8 +10,7 @@ services:
     ports:
       - '3000:3000'
     depends_on:
-      db:
-        condition: service_healthy  # 确保数据库完全启动后再启动应用
+      - db  # 简化依赖关系
     networks:
       - qiushui-network
 
@@ -28,11 +27,6 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    healthcheck:  # 添加健康检查
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
     command: ["postgres", "-c", "log_statement=all"]  # 启用详细日志记录
     networks:
       - qiushui-network
