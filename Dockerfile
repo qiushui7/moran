@@ -35,9 +35,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# 安装PostgreSQL客户端工具（用于健康检查）
-RUN apk add --no-cache postgresql-client
-
 # 添加非root用户
 RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
