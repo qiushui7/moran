@@ -6,7 +6,7 @@ services:
       dockerfile: Dockerfile
     restart: always
     env_file:
-      - ./.env.local.test
+      - ./.env.test
     ports:
       - '3000:3000'
     depends_on:
