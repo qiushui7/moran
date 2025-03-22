@@ -28,22 +28,24 @@ async function getUserById(userId: string): Promise<User | null> {
 
 // 获取单篇文章
 async function getPost(userId: string, slug: string): Promise<PostWithTags | null> {
-  // 构建API URL
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public/posts/${slug}?userId=${userId}`;
-  
-  const response = await fetch(apiUrl, { 
-    next: { revalidate: 60 } // 每60秒重新验证数据
-  });
-  
-  if (!response.ok) {
-    if (response.status === 404) {
-      return null;
-    }
-    console.error(`Failed to fetch post: ${slug}`);
+  try {
+    // 使用Prisma直接查询数据库
+    const post = await prisma.post.findFirst({
+      where: {
+        userId: userId,
+        slug: slug,
+        published: true, // 只获取已发布的文章
+      },
+      include: {
+        tags: true, // 包含标签数据
+      },
+    });
+    
+    return post;
+  } catch (error) {
+    console.error(`获取文章失败: ${slug}`, error);
     return null;
   }
-  
-  return response.json();
 }
 
 export async function generateMetadata({ params }: { params: Promise<{

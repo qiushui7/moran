@@ -24,7 +24,7 @@ import { CommandMenuPlugin } from "./plugins/CommandMenuPlugin";
 // import { BlockPlugin } from "./plugins/BlockPlugin";
 // import { BlockDecoratorPlugin } from "./plugins/BlockDecoratorPlugin";
 import EditorTheme from "./themes/EditorTheme";
-import { exportToHTML, importHTML, markdownToHtml, htmlToMarkdown } from "./utils/editorUtils";
+import { exportToHTML, importHTML } from "./utils/editorUtils";
 import "./styles/Editor.css";
 
 interface LexicalEditorProps {
@@ -42,24 +42,21 @@ export default function LexicalEditor({
 }: LexicalEditorProps) {
   const [htmlContent, setHtmlContent] = useState<string>("");
   const editorRef = useRef<LEditor | null>(null);
-  const lastInitialContentRef = useRef<string>(initialContent);
+  const lastInitialContentRef = useRef<string>(null);
+  const lastHtmlContentRef = useRef<string>(null);
 
   // 初始化HTML内容
   useEffect(() => {
     if (initialContent !== lastInitialContentRef.current) {
-      const html = markdownToHtml(initialContent);
-      setHtmlContent(html);
+      setHtmlContent(initialContent);
       lastInitialContentRef.current = initialContent;
-      
+      console.log("initialContent", initialContent);
       // 如果编辑器已经初始化，则重置编辑器内容
-      if (editorRef.current) {
-        // 使用导入HTML工具函数更新编辑器内容
-        setTimeout(() => {
-          if (editorRef.current) {
-            importHTML(editorRef.current, html);
-          }
-        }, 0);
-      }
+      setTimeout(() => {
+        if (editorRef.current) {
+          importHTML(editorRef.current, initialContent);
+        }
+      }, 0);
     }
   }, [initialContent]);
 
@@ -72,8 +69,10 @@ export default function LexicalEditor({
         // 获取HTML内容
         const html = await exportToHTML(editor);
         // 转换为Markdown并传递给父组件
-        const markdown = htmlToMarkdown(html);
-        onChange(markdown);
+        if(html !== lastHtmlContentRef.current) {
+          lastHtmlContentRef.current = html;
+          onChange(html);
+        }
       });
     }
   };

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Tag } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 
 type TagWithCount = Tag & { _count: { posts: number } };
 
@@ -10,19 +11,33 @@ export const metadata = {
 
 // 获取所有标签
 async function getAllTags(userId: string): Promise<TagWithCount[]> {
-  // 构建API URL，使用userId过滤
-  const apiUrl = `${process.env.NEXT_PUBLIC_API_URL || ''}/api/public/tags?userId=${userId}`;
-  
-  const response = await fetch(apiUrl, { 
-    next: { revalidate: 60 } // 每60秒重新验证数据
-  });
-  
-  if (!response.ok) {
-    console.error('Failed to fetch tags');
+  try {
+    // 使用Prisma直接查询数据库
+    const tags = await prisma.tag.findMany({
+      where: {
+        userId: userId,
+      },
+      include: {
+        _count: {
+          select: {
+            posts: {
+              where: {
+                published: true, // 只计算已发布的文章
+              }
+            }
+          }
+        }
+      },
+      orderBy: {
+        name: 'asc', // 按标签名称字母顺序排序
+      },
+    });
+    
+    return tags;
+  } catch (error) {
+    console.error('获取标签失败:', error);
     return [];
   }
-  
-  return response.json();
 }
 
 export default async function TagsPage({
