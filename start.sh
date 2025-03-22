@@ -21,10 +21,10 @@ echo "数据库已就绪，继续执行..."
 
 # 运行数据库操作
 echo "执行数据库结构同步..."
-npx prisma db push --accept-data-loss
+# npx prisma db push --accept-data-loss
 
 # 如果需要执行迁移而不是db push，取消下面一行的注释
-# npx prisma migrate deploy
+npx prisma migrate deploy
 
 # 启动应用
 echo "启动应用..."

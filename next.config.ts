@@ -5,11 +5,21 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   reactStrictMode: true,
   images: {
-    domains: [
-      'avatars.githubusercontent.com', // GitHub头像
-      'lh3.googleusercontent.com',    // Google头像
-    ]
-  }
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'avatars.githubusercontent.com',
+        port: '',
+        pathname: '/u/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'lh3.googleusercontent.com',
+        port: '',
+        pathname: '/a/**',
+      },
+    ],
+  },
 };
 
 export default nextConfig;

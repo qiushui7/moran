@@ -41,16 +41,16 @@ export default function AboutPage() {
         <ul>
           <li>
             <strong>Email:</strong>{" "}
-            <a href="mailto:contact@example.com">contact@example.com</a>
+            <a href="mailto:qiushui030716@gmail.com">qiushui030716@gmail.com</a>
           </li>
           <li>
             <strong>GitHub:</strong>{" "}
             <a
-              href="https://github.com/yourusername"
+              href="https://github.com/qiushui7"
               target="_blank"
               rel="noopener noreferrer"
             >
-              github.com/yourusername
+              github.com/qiushui7
             </a>
           </li>
         </ul>
