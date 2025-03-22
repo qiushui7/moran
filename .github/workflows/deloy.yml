@@ -1,0 +1,35 @@
+name: Deploy to Server
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - test
+
+jobs:
+  deploy:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to Server
+        uses: garygrossgarten/github-action-ssh@release
+        with:
+          command: |
+            cd ${{ secrets.REPO_PATH }}
+            git pull origin main
+            docker-compose down
+            docker-compose up --build -d
+          host: ${{ secrets.SSH_IP }}
+          username: ${{ secrets.SSH_USERNAME }}
+          privateKey: ${{ secrets.SSH_RSA }}
+
+      - name: Notify deployment status
+        if: always()
+        run: |
+          if [ ${{ job.status }} == 'success' ]; then
+            echo "Deployment succeeded!"
+          else
+            echo "Deployment failed!"
+          fi
